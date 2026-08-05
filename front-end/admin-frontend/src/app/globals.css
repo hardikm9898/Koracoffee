@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #b27c4e;
+  --color-coffee-dark: #2a1c16;
+  --color-coffee-light: #f5ebe1;
+  --color-background: #fcfaf7;
+  --color-foreground: #2a1c16;
+  --color-muted: #7a6355;
+  --font-sans: var(--font-outfit), var(--font-inter), sans-serif;
+}
+
+:root {
+  --background: #fcfaf7;
+  --foreground: #2a1c16;
+  --panel: rgba(255, 255, 255, 0.82);
+  --panel-strong: rgba(255, 255, 255, 0.94);
+  --stroke-soft: rgba(42, 28, 22, 0.08);
+  --shadow-soft: 0 20px 60px rgba(42, 28, 22, 0.08);
+  --font-inter: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-outfit: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  min-width: 320px;
+}
+
+::selection {
+  background: rgba(178, 124, 78, 0.24);
+  color: #2a1c16;
+}
+
+.admin-surface {
+  border: 1px solid var(--stroke-soft);
+  background: var(--panel);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(16px);
+}
+
+.admin-table-wrap {
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(178, 124, 78, 0.4) transparent;
+}
+
+.admin-table-wrap::-webkit-scrollbar {
+  height: 8px;
+}
+
+.admin-table-wrap::-webkit-scrollbar-thumb {
+  background: rgba(178, 124, 78, 0.35);
+  border-radius: 999px;
+}
+
+.admin-table {
+  min-width: 760px;
+}
+
+@media (max-width: 1023px) {
+  .admin-table {
+    min-width: 680px;
+  }
+}

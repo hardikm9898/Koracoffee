@@ -1,0 +1,47 @@
+# Ignore node_modules everywhere
+**/node_modules/
+
+# Ignore logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+**/*.log
+
+# Ignore environment files
+.env*
+!.env.example
+
+# Ignore build and cache artifacts
+**/.next/
+**/.next-verify*/
+**/out/
+**/build/
+**/dist/
+**/coverage/
+**/.cache/
+**/.vercel/
+**/.turbo/
+**/.parcel-cache/
+
+# Ignore package manager artifacts
+.pnp
+.pnp.js
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# Ignore OS and editor metadata
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Ignore backend upload artifacts
+backend/src/public/uploads/
+
+# Ignore local agent/session runtime state
+.claude/
