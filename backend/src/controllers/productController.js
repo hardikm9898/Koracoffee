@@ -390,9 +390,20 @@ const deleteProduct = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Product not found");
   }
 
+  // Reviews reference a product only by its numeric productId (not an
+  // ObjectId ref), so nothing else cleans these up automatically — without
+  // this, a deleted product's reviews would sit in the DB forever, no
+  // longer reachable by GET /api/reviews?productId= (which only ever
+  // showed them next to the product they were for anyway) but never
+  // removed either.
+  const { deletedCount } = await Review.deleteMany({ productId });
+
   res.status(200).json({
     success: true,
-    message: "Product deleted successfully",
+    message:
+      deletedCount > 0
+        ? `Product deleted successfully (${deletedCount} associated review${deletedCount === 1 ? "" : "s"} removed)`
+        : "Product deleted successfully",
   });
 });
 

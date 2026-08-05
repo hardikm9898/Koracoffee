@@ -59,9 +59,10 @@ This entire flow is admin-only; no customer-facing pages create/edit products.
 - `buildProductPayload` validates `variants[]` (label/price/discountPrice ≤
   price/non-negative stock), category must resolve to an existing `Category`
   ObjectId, rating must be 0–5. Supports `partial` mode for PATCH.
-- Deleting a product is a **hard delete with no cascade** — related `Review`
-  documents (which reference it by numeric `productId`, not an ObjectId ref)
-  become orphaned.
+- Deleting a product now **cascades to its `Review`s** — `deleteProduct`
+  runs `Review.deleteMany({ productId })` right after the product is
+  deleted (matched by the numeric `productId`, not an ObjectId ref), and
+  the response message reports how many were removed.
 - **Bulk CSV import** (`adminBulkProductController.js`): hand-rolled CSV
   parser (no external library), required headers `name, category, baseprice,
   notes, description, origin` (case/underscore-insensitive), optional
@@ -102,12 +103,12 @@ front-end/admin-frontend/src/lib/admin-product-api.ts
   are true collection-wide totals — they're computed from only the current
   page of results.
 - Assuming CSV bulk upload validates product name uniqueness — it explicitly does not.
-- Forgetting that deleting a product leaves orphaned `Review` rows behind.
+- Assuming deleting a product leaves orphaned `Review` rows behind — it doesn't anymore, they're cascade-deleted.
 - Building new admin mutation features against `/api/products*` (no `/admin`
   prefix) — that router is GET-only now; all writes belong under `/api/admin/products*`.
 
 ## Future Extension Points
 
-- Add cascade handling (or a soft-delete) for products with existing reviews/orders.
+- ~~Add cascade handling for products with existing reviews~~ **Done** (reviews). Orders snapshot item data at purchase time, so a deleted product doesn't affect past orders — no cascade needed there.
 - Enforce name uniqueness in bulk upload if duplicate listings become a real problem.
 - Compute list-page summary stats via a real aggregate instead of the current page's `items`.

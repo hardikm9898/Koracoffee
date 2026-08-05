@@ -93,9 +93,17 @@ might be relied upon elsewhere.
    permanently stale after the first migration.
 10. **`Order.itemStatus` sub-schema is defined but never used** anywhere in
     `orderController.js` — dead field, always empty.
-11. **No cascade protection on delete.** Deleting a `Category` doesn't check
-    for `Product`s still referencing it (orphaned ref). Deleting a `Product`
-    doesn't clean up related `Review`s (orphaned `productId`).
+11. ~~**No cascade protection on delete.**~~ **RESOLVED.**
+    `categoryController.deleteCategory` now checks
+    `Product.countDocuments({ category: id })` first and returns `409`
+    (with the count, in the message) if any products still reference it —
+    blocks the delete rather than leaving an orphaned ref. Deliberately a
+    block, not a cascade (deleting a category shouldn't silently delete or
+    orphan products). `productController.deleteProduct` now also deletes
+    every `Review` matching the product's numeric `productId`
+    (`Review.deleteMany`) — deliberately a cascade here, since an orphaned
+    review with no product to attach to is meaningless, unlike a category.
+    Both covered by `tests/referentialIntegrity.test.js` (4 tests).
 
 ## Admin analytics (`adminAnalyticsController.js`)
 

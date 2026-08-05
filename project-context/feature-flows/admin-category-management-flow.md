@@ -55,9 +55,10 @@ This is an admin-only flow. Note: category CRUD functions live in
 - `active` boolean is used purely as a display/filter flag — toggled via
   `PATCH { active: !category.active }` from the same edit form, not a
   separate endpoint.
-- **Deleting a category does not check for existing `Product.category`
-  references** — orphaned refs are possible; a product pointing to a deleted
-  category will show a blank/null category after `populate`.
+- **Deleting a category is now blocked (`409`) if any `Product.category`
+  still references it** — `deleteCategory` checks `Product.countDocuments`
+  first; the error message includes the count. Intentionally a block, not
+  a cascade — reassign or delete the referencing products first.
 
 ## Dependencies
 
@@ -78,12 +79,9 @@ front-end/admin-frontend/src/lib/admin-product-api.ts
 
 ## Common Mistakes
 
-- Assuming deleting a category is safe/blocked if products reference it — it isn't blocked.
 - Looking for `admin-category-api.ts` — category functions live in `admin-product-api.ts`.
 
 ## Future Extension Points
 
-- Add a referential-integrity check (block delete, or cascade-null the
-  product's category) before allowing category deletion.
 - Extract category functions into their own `lib/admin-category-api.ts` for
   consistency with orders/users/reviews, if touching this file for other reasons.

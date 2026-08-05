@@ -1,4 +1,5 @@
 const Category = require("../models/Category");
+const Product = require("../models/Product");
 const asyncHandler = require("../utils/asyncHandler");
 const ApiError = require("../utils/ApiError");
 
@@ -79,6 +80,20 @@ const updateCategory = asyncHandler(async (req, res) => {
 });
 
 const deleteCategory = asyncHandler(async (req, res) => {
+  // Referential-integrity check: a Category deleted while Products still
+  // reference it (Product.category is required) used to leave those
+  // products with a dangling ObjectId — populate('category') would then
+  // silently return null, breaking category name display everywhere that
+  // product shows up. Block the delete instead; the admin has to reassign
+  // or remove the affected products first.
+  const referencingProducts = await Product.countDocuments({ category: req.params.id });
+  if (referencingProducts > 0) {
+    throw new ApiError(
+      409,
+      `Cannot delete this category — ${referencingProducts} product${referencingProducts === 1 ? "" : "s"} still reference it. Reassign or delete those products first.`,
+    );
+  }
+
   const category = await Category.findByIdAndDelete(req.params.id).lean();
   if (!category) {
     throw new ApiError(404, "Category not found");
