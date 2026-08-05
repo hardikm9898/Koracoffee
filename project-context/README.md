@@ -50,6 +50,7 @@ passwords, no email login) for both customers and admins.
 | "What reusable UI components exist?" | [shared-components.md](shared-components.md) |
 | "Which controller/service/model touches feature X?" | [module-map.md](module-map.md) |
 | "What bugs/risks/tech debt already exist?" | [known-limitations.md](known-limitations.md) — **check before 'fixing' something that might be a known issue** |
+| "What's blocked on an external account/credential/decision?" | [blocked-external-resources.md](blocked-external-resources.md) |
 | "How does feature X work end-to-end (API → DB → UI)?" | [feature-flows/](feature-flows/) — one file per feature |
 
 ## Feature flows
@@ -73,12 +74,15 @@ DB tables, business rules, dependencies, files involved, common mistakes, extens
 ## Critical facts every task should know
 
 - **No payment gateway is integrated.** Checkout's "Payment" step is a visual
-  mockup only. See [checkout-order-flow.md](feature-flows/checkout-order-flow.md).
+  mockup only — blocked on a real provider account, see
+  [blocked-external-resources.md](blocked-external-resources.md).
+  See [checkout-order-flow.md](feature-flows/checkout-order-flow.md).
 - ~~**OTP is not random in non-production environments**~~ **FIXED** (2026-08-05):
   OTP generation is always random now for both admin and regular users. There
   is still no real SMS delivery provider — `services/otpSender.js` will
   throw if `NODE_ENV=production` is set without one configured (intentional
-  fail-loud). See [authentication.md](authentication.md).
+  fail-loud, blocked on a provider account — see
+  [blocked-external-resources.md](blocked-external-resources.md)). See [authentication.md](authentication.md).
 - ~~**Several core mutation routes are unauthenticated**~~ **FIXED** (2026-08-05):
   public product/category routers are now GET-only; order status mutation is
   admin-only via `/api/admin/orders`; the public order router requires login
@@ -90,9 +94,15 @@ DB tables, business rules, dependencies, files involved, common mistakes, extens
   `services/pricingService.js` re-derives price server-side for every cart
   add and order line — client-supplied price/name/image are ignored. See
   [checkout-order-flow.md](feature-flows/checkout-order-flow.md).
-- **Several admin analytics endpoints are broken** (status-enum casing bugs,
-  a non-existent `Order.userId` field, hardcoded/mocked data). See
-  [admin-dashboard-analytics-flow.md](feature-flows/admin-dashboard-analytics-flow.md).
+- ~~**Several admin analytics endpoints are broken**~~ **FIXED** (2026-08-05):
+  status-enum casing bugs, the nonexistent `Order.userId` field, and a
+  crash in the inventory endpoint were all fixed and verified live.
+  `getChannelPerformance` remains intentionally mocked (no channel/
+  attribution data exists anywhere in the schema — a missing feature, not a
+  bug). See [admin-dashboard-analytics-flow.md](feature-flows/admin-dashboard-analytics-flow.md).
+- **This repo now has git history and a CI pipeline** (`.github/workflows/ci.yml`),
+  but no remote is configured yet, so CI has never actually run — see
+  [blocked-external-resources.md](blocked-external-resources.md).
 
 ## Maintenance note
 
