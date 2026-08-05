@@ -27,7 +27,7 @@ this becomes a normal implementation task.
 |---|---|---|
 | **Git remote / hosting** | Where does this repo live — GitHub, GitLab, self-hosted? | The local repo (initialized 2026-08-05) and `.github/workflows/ci.yml` are ready; CI has never actually run because there's no remote to trigger it |
 | **Branch protection rules** | Required reviews, required CI checks before merge, who can push to `main` | Depends on the remote existing first |
-| **Redis / distributed cache** | Whether it's worth the operational overhead yet, and which provider (self-hosted, Upstash, ElastiCache, etc.) | No Redis instance is reachable in this environment; any caching done in this session is in-process (single-instance) only, which doesn't help once the backend is scaled horizontally — see [known-limitations.md](known-limitations.md) |
+| **Redis / distributed cache** | Whether it's worth the operational overhead yet, and which provider (self-hosted, Upstash, ElastiCache, etc.) | No Redis instance is reachable in this environment. `backend/src/utils/cache.js` implements a working in-process TTL cache for product/category listing instead (see [known-limitations.md](known-limitations.md) #45) — correct and effective for a single instance, but each instance gets its own independent cache once the backend is scaled horizontally, so it doesn't help past that point. |
 | **Multi-instance / horizontal scaling plan** | Whether the backend will ever run more than one instance | Blocks on object storage (above) and affects several "works today, breaks at scale" items already logged in [known-limitations.md](known-limitations.md) |
 
 ## How this list is maintained

@@ -54,6 +54,9 @@ Not part of this flow directly — see [admin-product-management-flow.md](admin-
   versa — `images[]` is synthesized from `image` if empty).
 - Text search is a case-insensitive regex OR across `name`, `notes`, `origin`
   — no text index, full collection scan at scale.
+- `GET /api/products` and `GET /api/categories` are cached in-process for
+  30s/60s respectively (`utils/cache.js`), cleared on every write through
+  the admin API — see [known-limitations.md](../known-limitations.md) #45.
 - `/shop/[id]` also redirects legacy category-slug URLs (`/shop/espresso`,
   `/shop/single-origin`, `/shop/equipment` — used by Footer links) to
   `/shop?category=<Name>` via a small hardcoded slug map.

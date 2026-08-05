@@ -4,6 +4,7 @@ const Category = require("../models/Category");
 const Review = require("../models/Review");
 const asyncHandler = require("../utils/asyncHandler");
 const ApiError = require("../utils/ApiError");
+const { productListCache } = require("../utils/cache");
 
 const SORT_MAP = {
   featured: { featured: -1, productId: -1 },
@@ -202,6 +203,14 @@ const buildProductPayload = (body = {}, { partial = false } = {}) => {
 };
 
 const listProducts = asyncHandler(async (req, res) => {
+  // See utils/cache.js. Cleared on any product or category write.
+  const cacheKey = JSON.stringify(req.query);
+  const cached = productListCache.get(cacheKey);
+  if (cached) {
+    res.status(200).json({ success: true, data: cached });
+    return;
+  }
+
   const page = Math.max(parseNumber(req.query.page, 1), 1);
   const limit = Math.min(Math.max(parseNumber(req.query.limit, 10), 1), 30);
   const category = req.query.category ? String(req.query.category).trim() : "";
@@ -222,21 +231,23 @@ const listProducts = asyncHandler(async (req, res) => {
     } else {
       const categoryDoc = await Category.findOne({ name: category }).select("_id").lean();
       if (!categoryDoc) {
+        const emptyResult = {
+          items: [],
+          filters: {
+            categories: categories.map((item) => item.name),
+          },
+          pagination: {
+            page,
+            limit,
+            total: 0,
+            totalPages: 1,
+            hasNextPage: false,
+          },
+        };
+        productListCache.set(cacheKey, emptyResult);
         return res.status(200).json({
           success: true,
-          data: {
-            items: [],
-            filters: {
-              categories: categories.map((item) => item.name),
-            },
-            pagination: {
-              page,
-              limit,
-              total: 0,
-              totalPages: 1,
-              hasNextPage: false,
-            },
-          },
+          data: emptyResult,
         });
       }
       filter.category = categoryDoc._id;
@@ -266,21 +277,24 @@ const listProducts = asyncHandler(async (req, res) => {
 
   const withSummary = await attachReviewSummary(items.map((item) => item.toObject ? item.toObject() : item));
 
+  const result = {
+    items: withSummary.map(serializeProduct),
+    filters: {
+      categories: categories.map((item) => item.name),
+    },
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.max(Math.ceil(total / limit), 1),
+      hasNextPage: page * limit < total,
+    },
+  };
+  productListCache.set(cacheKey, result);
+
   res.status(200).json({
     success: true,
-    data: {
-      items: withSummary.map(serializeProduct),
-      filters: {
-        categories: categories.map((item) => item.name),
-      },
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.max(Math.ceil(total / limit), 1),
-        hasNextPage: page * limit < total,
-      },
-    },
+    data: result,
   });
 });
 
@@ -343,6 +357,7 @@ const createProduct = asyncHandler(async (req, res) => {
 
   const product = await Product.create({ ...payload, productId });
   await product.populate("category", "name");
+  productListCache.clear();
 
   res.status(201).json({
     success: true,
@@ -373,6 +388,8 @@ const updateProduct = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Product not found");
   }
 
+  productListCache.clear();
+
   res.status(200).json({
     success: true,
     data: serializeProduct(product),
@@ -397,6 +414,7 @@ const deleteProduct = asyncHandler(async (req, res) => {
   // showed them next to the product they were for anyway) but never
   // removed either.
   const { deletedCount } = await Review.deleteMany({ productId });
+  productListCache.clear();
 
   res.status(200).json({
     success: true,

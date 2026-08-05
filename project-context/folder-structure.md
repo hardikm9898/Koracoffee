@@ -38,7 +38,8 @@ controllers/            authController, userController, cartController,
 services/                addressService, cartService, couponService, otpService,
                          otpSender, pricingService, tokenService
 middlewares/             authMiddleware, errorHandler, notFound, rateLimiters
-utils/                  ApiError, adminAuth, asyncHandler, logger (pino)
+utils/                  ApiError, adminAuth, asyncHandler, cache (in-process
+                         TTL cache — product/category list caching), logger (pino)
 public/uploads/          products/, categories/, reviews/ (served at /uploads)
 data/productSeed.js      24 hardcoded coffee products
 seeders/seedProducts.js  wipes + reseeds Product/Category
@@ -49,7 +50,7 @@ seeders/backfillAddresses.js  one-time: migrates legacy embedded
                          re-run (idempotent)
 tests/                   jest + supertest integration tests (setup.js,
                          helpers.js, order.test.js, cart.test.js, auth.test.js,
-                         coupon.test.js)
+                         coupon.test.js, referentialIntegrity.test.js, cache.test.js)
 jest.config.js           jest config (setupFilesAfterEnv → tests/setup.js)
 .env                     local secrets (gitignored)
 .env.example             documents every env var (MONGODB_URI, JWT_SECRET,

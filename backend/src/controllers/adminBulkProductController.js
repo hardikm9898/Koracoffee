@@ -3,6 +3,7 @@ const Product = require("../models/Product");
 const Category = require("../models/Category");
 const asyncHandler = require("../utils/asyncHandler");
 const ApiError = require("../utils/ApiError");
+const { productListCache } = require("../utils/cache");
 
 const MAX_ROWS = 500;
 
@@ -337,6 +338,10 @@ const bulkUploadProducts = asyncHandler(async (req, res) => {
     await Product.create(payload);
     created += 1;
     results.push({ row: rowNumber, status: "created", preview: serializePreview(payload) });
+  }
+
+  if (!dryRun && (created > 0 || updated > 0)) {
+    productListCache.clear();
   }
 
   res.status(200).json({

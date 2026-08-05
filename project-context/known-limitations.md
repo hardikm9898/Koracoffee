@@ -390,6 +390,29 @@ might be relied upon elsewhere.
     duplication this is one symptom of). All test uploads cleaned up
     afterward. `npm audit`'s vulnerability count dropped from 9 to 6 as a
     side effect.
+45. ~~**No caching layer.**~~ **PARTIALLY RESOLVED.** New
+    `utils/cache.js` — a minimal in-process, TTL-based `MemoryCache` (no
+    Redis reachable in this environment, see
+    [blocked-external-resources.md](blocked-external-resources.md)).
+    `productListCache` (30s TTL) covers `GET /api/products`;
+    `categoryListCache` (60s TTL) covers `GET /api/categories`. Both are
+    explicitly `.clear()`d on every product/category write (create, update,
+    delete, and the CSV bulk-upload path) — a category write clears
+    **both** caches, since a cached product-list response embeds category
+    names in `filters.categories`. **Invalidation only happens through
+    this app's own controllers** — a write that bypasses the API (a direct
+    MongoDB write, a script) won't invalidate the cache and will only
+    become visible once the TTL expires; acceptable since this app has no
+    other write path into these collections. This is single-instance
+    only — once the backend runs on more than one instance, each has its
+    own independent cache, which doesn't help — the same "works today,
+    breaks at scale" pattern as the local-disk-uploads gap tracked in
+    [blocked-external-resources.md](blocked-external-resources.md).
+    Verified live:
+    cached response ~15x faster than cold (1.5ms vs 25ms); `tests/cache.test.js`
+    (4 tests) specifically proves invalidation-on-write, including the
+    category-rename-affects-product-filters case, rather than relying on
+    coincidental TTL timing.
 
 ## When to update this file
 

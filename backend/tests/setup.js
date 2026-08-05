@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { productListCache, categoryListCache } = require("../src/utils/cache");
 
 // Env vars must be set before any test file requires ../src/app (which
 // pulls in controllers that read process.env at call time, not import
@@ -24,6 +25,12 @@ beforeAll(async () => {
 afterEach(async () => {
   const collections = await mongoose.connection.db.collections();
   await Promise.all(collections.map((collection) => collection.deleteMany({})));
+  // Without this, a "list products" test could see a cached response left
+  // over from an earlier test in the same file/process (jest runs a whole
+  // file in one process) — the DB gets wiped above, but the in-process
+  // cache doesn't know that.
+  productListCache.clear();
+  categoryListCache.clear();
 });
 
 afterAll(async () => {

@@ -9,6 +9,7 @@ Path: `backend/` · Entry: `src/server.js` · Node.js + Express 4.21.2 + Mongoos
 - **Auth**: `jsonwebtoken` 9 (JWT, `services/tokenService.js`)
 - **Uploads**: `multer` 2.2.0 (disk storage per resource; memory storage for CSV bulk upload)
 - **Security middleware**: `helmet` (with CORP relaxed to `cross-origin` so `/uploads` images stay embeddable by both frontends) and `express-rate-limit` (general 300 req/15min on all `/api`, stricter 20 req/15min on the four OTP endpoints) — see `middlewares/rateLimiters.js`
+- **Caching**: `utils/cache.js` — in-process TTL cache (no Redis available) for `GET /api/products` and `GET /api/categories`, explicitly invalidated on every write through the API. Single-instance only.
 - **Logging**: `morgan` ("dev" format, per-request access log) + `pino`
   (`utils/logger.js`) for structured application/error logging — pretty in
   dev, JSON lines in production. No log-shipping/APM service is wired up

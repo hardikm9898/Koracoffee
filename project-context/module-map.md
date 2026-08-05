@@ -9,8 +9,8 @@ lists see [database.md](database.md); for full routes see [api-reference.md](api
 |---|---|---|---|---|---|
 | Auth | `User` | `otpService`, `tokenService` | `authController` | `authRoutes` | (same file, `/admin/*` paths) |
 | Users/Addresses | `User`, `Address` | `addressService` | `userController` | `userRoutes` | `adminUserController` reads `User`+`Address`+`Order` directly |
-| Products | `Product`, `Category`, `Review` (rating agg) | — | `productController` | `productRoutes` | `adminProductRoutes` (reuses `productController`) |
-| Categories | `Category` | — | `categoryController` | `categoryRoutes` | `adminCategoryRoutes` (reuses `categoryController`) |
+| Products | `Product`, `Category`, `Review` (rating agg) | `utils/cache.js` (list caching) | `productController` | `productRoutes` | `adminProductRoutes` (reuses `productController`); `adminBulkProductController` (CSV) also invalidates the product cache |
+| Categories | `Category` | `utils/cache.js` (list caching, shared with Products) | `categoryController` | `categoryRoutes` | `adminCategoryRoutes` (reuses `categoryController`) |
 | Cart | `Cart` | `cartService`, `pricingService` (price resolution) | `cartController` | `cartRoutes` | — (no admin cart view) |
 | Orders | `Order`, `Product` (stock) | `cartService` (post-order cleanup), `pricingService` (price resolution), `couponService` (discount resolution) | `orderController` | `orderRoutes` | `adminOrderRoutes` (reuses `orderController`) |
 | Coupons | `Coupon` | `couponService` (shared with Orders) | `couponController` (public preview/list) | `couponRoutes` | `adminCouponController` + `adminCouponRoutes` — separate files |

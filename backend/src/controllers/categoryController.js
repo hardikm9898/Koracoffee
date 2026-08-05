@@ -2,6 +2,7 @@ const Category = require("../models/Category");
 const Product = require("../models/Product");
 const asyncHandler = require("../utils/asyncHandler");
 const ApiError = require("../utils/ApiError");
+const { productListCache, categoryListCache } = require("../utils/cache");
 
 const serializeCategory = (category) => ({
   id: String(category._id),
@@ -11,11 +12,20 @@ const serializeCategory = (category) => ({
 });
 
 const listCategories = asyncHandler(async (_req, res) => {
+  // See utils/cache.js. Cleared on any category write.
+  const cached = categoryListCache.get("all");
+  if (cached) {
+    res.status(200).json({ success: true, data: cached });
+    return;
+  }
+
   const categories = await Category.find().sort({ name: 1 }).lean();
+  const result = categories.map(serializeCategory);
+  categoryListCache.set("all", result);
 
   res.status(200).json({
     success: true,
-    data: categories.map(serializeCategory),
+    data: result,
   });
 });
 
@@ -32,6 +42,8 @@ const createCategory = asyncHandler(async (req, res) => {
   }
 
   const category = await Category.create({ name, image });
+  categoryListCache.clear();
+  productListCache.clear();
   res.status(201).json({
     success: true,
     data: serializeCategory(category),
@@ -73,6 +85,9 @@ const updateCategory = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Category not found");
   }
 
+  categoryListCache.clear();
+  productListCache.clear();
+
   res.status(200).json({
     success: true,
     data: serializeCategory(category),
@@ -98,6 +113,9 @@ const deleteCategory = asyncHandler(async (req, res) => {
   if (!category) {
     throw new ApiError(404, "Category not found");
   }
+
+  categoryListCache.clear();
+  productListCache.clear();
 
   res.status(200).json({
     success: true,
