@@ -32,7 +32,7 @@ controllers/            authController, userController, cartController,
 services/                addressService, cartService, otpService, otpSender,
                          pricingService, tokenService
 middlewares/             authMiddleware, errorHandler, notFound, rateLimiters
-utils/                  ApiError, adminAuth, asyncHandler
+utils/                  ApiError, adminAuth, asyncHandler, logger (pino)
 public/uploads/          products/, categories/, reviews/ (served at /uploads)
 data/productSeed.js      24 hardcoded coffee products
 seeders/seedProducts.js  wipes + reseeds Product/Category

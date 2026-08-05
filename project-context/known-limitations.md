@@ -187,8 +187,21 @@ might be relied upon elsewhere.
 36. Multer config duplicated near-verbatim across 4+ route files.
 37. No centralized validation library — hand-rolled checks vary slightly
     between controllers for logically identical fields (e.g. zip regex).
-38. `errorHandler` never logs errors server-side (no `console.error`) —
-    production 500 debugging relies solely on `morgan`'s request-line log.
+38. ~~`errorHandler` never logs errors server-side~~ **RESOLVED.** New
+    `utils/logger.js` (pino — pretty-printed in dev, plain JSON lines in
+    production) is used in `errorHandler.js`: every error is logged with
+    method/path/statusCode and the full stack (`logger.error` for `statusCode >= 500`,
+    `logger.warn` for expected `4xx` `ApiError`s). Also used for
+    server-startup/DB-connection logging (`server.js`, `config/db.js`)
+    instead of raw `console.log`/`console.error`. Verified live: a genuine
+    500 (an uncaught Mongoose `CastError` from a malformed ObjectId) now
+    logs a full structured entry with stack trace, where previously it left
+    no trace beyond morgan's one-line request log. No log-shipping/APM
+    service is wired up — this only fixes "does the error get logged
+    anywhere," not "does anyone get paged about it." That's still a real
+    gap (see [feature-list.md](feature-list.md) / the original audit's
+    Phase 1 monitoring item) — Sentry or an equivalent needs a real account
+    to actually wire up, which wasn't available to do here.
 39. No `app.set('trust proxy', ...)` configured, yet absolute upload/review
     image URLs are built from `req.protocol`/`req.get('host')` — wrong scheme
     possible behind a reverse proxy.

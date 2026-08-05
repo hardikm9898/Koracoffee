@@ -9,7 +9,10 @@ Path: `backend/` · Entry: `src/server.js` · Node.js + Express 4.21.2 + Mongoos
 - **Auth**: `jsonwebtoken` 9 (JWT, `services/tokenService.js`)
 - **Uploads**: `multer` 1.4.4 (disk storage per resource; memory storage for CSV bulk upload) — legacy 1.x line, worth upgrading eventually
 - **Security middleware**: `helmet` (with CORP relaxed to `cross-origin` so `/uploads` images stay embeddable by both frontends) and `express-rate-limit` (general 300 req/15min on all `/api`, stricter 20 req/15min on the four OTP endpoints) — see `middlewares/rateLimiters.js`
-- **Logging**: `morgan` ("dev" format only — no persistent/structured logging)
+- **Logging**: `morgan` ("dev" format, per-request access log) + `pino`
+  (`utils/logger.js`) for structured application/error logging — pretty in
+  dev, JSON lines in production. No log-shipping/APM service is wired up
+  (no Sentry/Datadog); errors are logged, not alerted on.
 - **CORS**: `cors`, custom origin allowlist from `CLIENT_URL`/`CLIENT_URLS` env vars
 - **No** validation library (Joi/Zod/express-validator) — all validation is hand-rolled per controller
 - **No** ORM transactions used anywhere (no Mongoose sessions)
@@ -71,8 +74,8 @@ src/
 - **Error handling**: every controller uses `asyncHandler` (catches rejected
   promises → `next(err)`) and throws `ApiError(statusCode, message)` for
   expected failures. `errorHandler` middleware turns any error into
-  `{ success:false, message }` with `err.statusCode || 500`. No server-side
-  error logging exists beyond `morgan`'s request line.
+  `{ success:false, message }` with `err.statusCode || 500`, and logs it via
+  `utils/logger.js` (error level with stack trace for `5xx`, warn for `4xx`).
 - **File uploads**: multer is configured independently (copy-pasted) in 5
   different route files rather than a shared module. Uploaded files are saved
   under `src/public/uploads/{products,categories,reviews}/` and referenced by
