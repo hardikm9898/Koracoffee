@@ -4,6 +4,7 @@
 
 ```
 d:\hardik\coffee\
+  .github/workflows/ci.yml  GitHub Actions: backend tests, both frontends' build
   backend/                  Express API
   front-end/
     frontend/                Customer storefront (Next.js)
@@ -11,8 +12,11 @@ d:\hardik\coffee\
   project-context/          This documentation set
 ```
 
-Not a git repo at the root (no `.git` observed at `d:\hardik\coffee`) — the
-three apps are managed as siblings, not a monorepo tool (no Turborepo/Nx/workspaces).
+A single git repo at the root (initialized 2026-08-05 — previously this
+project had no version control at all) covers all three apps plus
+`project-context/` together; they are siblings, not a monorepo tool (no
+Turborepo/Nx/workspaces). No git remote is configured yet, so CI has never
+actually run — see [known-limitations.md](known-limitations.md) #42.
 
 ## backend/src/
 

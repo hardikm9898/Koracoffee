@@ -49,7 +49,11 @@ None directly in this flow (stock/cart side-effects belong to order *creation*, 
   selecting Cancelled/Refunded auto-expands the row and requires a reason
   before Save is enabled. Expandable row also shows a **client-side-computed
   refund estimate** (`calculateRefundAmount`) — display-only, independent of
-  any backend refund calculation.
+  any backend refund calculation. (Fixed a pre-existing build-breaking type
+  error here — `order.discountAmount > 0` where `discountAmount` is
+  optional on `AdminOrderRecord` — while setting up CI, since it failed
+  `next build` outright; changed to `(order.discountAmount ?? 0) > 0`, no
+  behavior change.)
 - `app/orders/[orderId]/page.tsx` — read-only detail (shipping, items,
   timeline, totals). **No `notFound()` guard** — a bad/missing order ID likely
   crashes this page (unlike the equivalent product detail page).

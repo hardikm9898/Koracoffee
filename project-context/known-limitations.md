@@ -275,6 +275,36 @@ might be relied upon elsewhere.
     This does not add auth to any route that lacked it (see #1–#3) — it only
     bounds abuse volume against whatever *is* reachable.
 
+## DevOps
+
+42. ~~**No CI pipeline.**~~ **RESOLVED.** `.github/workflows/ci.yml` runs on
+    every push/PR to `main`/`master`: a `backend` job (spins up a real
+    `mongo:7` service container, runs `npm test` — the jest suite from
+    #35a — plus a `node --check` syntax pass over every source file since
+    the backend has no lint script configured yet), and `frontend`/
+    `admin-frontend` jobs (`npm run lint` — non-blocking, see #43 below —
+    then `npm run build`, which is the real gate). **Not yet verified
+    end-to-end** — this repo has no git remote configured, so GitHub
+    Actions has never actually run this workflow; only verified locally
+    (YAML syntax validated with `js-yaml`, and every individual command the
+    workflow runs was executed locally and passed). Push to a GitHub remote
+    to see it run for real.
+43. **Pre-existing lint errors in both frontends, unrelated to any fix in
+    this session.** A `react-hooks/set-state-in-effect` pattern (calling
+    `setLoading(true)`/`setError(null)` synchronously at the top of a
+    data-fetching `useEffect`) trips a strict lint rule in 6 files:
+    `admin-frontend/src/app/customers/[userId]/page.tsx`,
+    `components/admin/RecentActivitiesCard.tsx`, `SalesOverviewCard.tsx`;
+    `frontend/src/components/shop/ProductDetailClient.tsx` plus 4
+    `no-explicit-any` errors in `components/home/ScrollAnimation.tsx`.
+    These don't break the build (only `npm run lint`, which CI now runs
+    non-blocking — see #42), so they were left alone rather than risk
+    behavior changes across files with no browser-level test coverage to
+    verify against. One **build-breaking** issue in the same family
+    (`front-end/admin-frontend/src/app/orders/page.tsx:555`,
+    `order.discountAmount` possibly `undefined`) *was* fixed, since it
+    blocked `next build` entirely — see `admin-order-management-flow.md`.
+
 ## When to update this file
 
 Add an entry here whenever a task uncovers a new bug/gap, and remove/mark an

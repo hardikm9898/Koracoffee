@@ -552,7 +552,7 @@ export default function OrdersPage() {
                                             <span>Cancelled items subtotal</span>
                                             <span>₹{refundInfo.breakdown.itemsSubtotal.toFixed(2)}</span>
                                           </div>
-                                          {order.discountAmount > 0 && (
+                                          {(order.discountAmount ?? 0) > 0 && (
                                             <div className="flex justify-between text-emerald-700">
                                               <span>Coupon discount (proportional)</span>
                                               <span>-₹{refundInfo.breakdown.discountProportional.toFixed(2)}</span>
