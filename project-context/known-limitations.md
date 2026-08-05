@@ -225,6 +225,21 @@ might be relied upon elsewhere.
 
 ## Backend — style / maintainability
 
+35a. ~~**Zero automated tests anywhere.**~~ **PARTIALLY RESOLVED.** New
+     `jest`/`supertest` integration suite in `backend/tests/` (`npm test`,
+     `--runInBand`) covers the highest-financial-risk logic verified by
+     hand earlier in this session: price-trust on cart/order (client price
+     always ignored), the atomic stock-decrement race fix (5 concurrent
+     orders for 1 unit of stock → exactly 1 succeeds), multi-item rollback,
+     order auth/scoping, and OTP randomness/admin-allowlist behavior. Runs
+     against a real MongoDB using a dedicated `<db>-test` database (derived
+     from `MONGODB_URI`), auto-created and `dropDatabase()`d per run —
+     **not** an in-memory server (`mongodb-memory-server`'s postinstall
+     binary download wasn't reliable in this environment, so it was
+     removed after installing). This means tests need a reachable MongoDB;
+     see `.github/workflows/ci.yml` for how CI provides one. Frontend test
+     coverage (customer + admin) is still nonexistent — only the backend
+     has tests so far.
 36. Multer config duplicated near-verbatim across 4+ route files.
 37. No centralized validation library — hand-rolled checks vary slightly
     between controllers for logically identical fields (e.g. zip regex).

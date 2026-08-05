@@ -1,5 +1,12 @@
 const rateLimit = require("express-rate-limit");
 
+// The integration test suite runs many requests against one shared Express
+// app instance in a single process (tests/setup.js) — rate limiting is
+// infrastructure, not something those tests are trying to verify, so it's
+// skipped in NODE_ENV=test to avoid spurious 429s unrelated to whatever a
+// given test actually checks.
+const isTestEnv = process.env.NODE_ENV === "test";
+
 // Applied to every /api route. Generous enough not to interfere with normal
 // browsing/checkout traffic, but stops unbounded scripted abuse.
 const apiLimiter = rateLimit({
@@ -7,6 +14,7 @@ const apiLimiter = rateLimit({
   max: 300,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => isTestEnv,
   message: { success: false, message: "Too many requests. Please try again later." },
 });
 
@@ -20,6 +28,7 @@ const authLimiter = rateLimit({
   max: 20,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => isTestEnv,
   message: { success: false, message: "Too many auth attempts. Please try again later." },
 });
 

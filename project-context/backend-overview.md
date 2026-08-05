@@ -15,7 +15,8 @@ Path: `backend/` · Entry: `src/server.js` · Node.js + Express 4.21.2 + Mongoos
   (no Sentry/Datadog); errors are logged, not alerted on.
 - **CORS**: `cors`, custom origin allowlist from `CLIENT_URL`/`CLIENT_URLS` env vars
 - **No** validation library (Joi/Zod/express-validator) — all validation is hand-rolled per controller
-- **No** ORM transactions used anywhere (no Mongoose sessions)
+- **No** ORM transactions used anywhere (no Mongoose sessions) — this deployment's MongoDB is a standalone instance, not a replica set, so transactions aren't available at all (verified live)
+- **Testing**: `jest` + `supertest` (`npm test`), integration-style — boots the real Express app (`src/app.js`) against a dedicated `<db>-test` MongoDB database (see `tests/setup.js`), not an in-memory server. Covers price-trust, atomic stock decrement, order auth/scoping, and OTP behavior. See `backend/tests/`.
 
 package.json scripts: `dev` (nodemon), `start`, `seed:products` (seeds 24 hardcoded coffee products).
 
