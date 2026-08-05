@@ -1,4 +1,4 @@
-import { adminFetch } from "@/lib/admin-api";
+import { adminFetch, parseAdminResponse } from "@/lib/admin-api";
 
 export type AdminReviewStatus = "pending" | "approved";
 
@@ -26,14 +26,6 @@ export type AdminReviewListResponse = {
   };
 };
 
-const parseResponse = async <T>(response: Response): Promise<T> => {
-  const payload = await response.json();
-  if (!response.ok) {
-    throw new Error(payload.message || "API request failed");
-  }
-  return payload.data as T;
-};
-
 export async function getReviews(query: { status?: AdminReviewStatus; productId?: number; page?: number; limit?: number } = {}) {
   const params = new URLSearchParams();
   if (query.status) params.set("status", query.status);
@@ -46,7 +38,7 @@ export async function getReviews(query: { status?: AdminReviewStatus; productId?
     cache: "no-store",
   });
 
-  return parseResponse<AdminReviewListResponse>(response);
+  return parseAdminResponse<AdminReviewListResponse>(response);
 }
 
 export async function approveReview(reviewId: string): Promise<AdminReviewRecord> {
@@ -54,7 +46,7 @@ export async function approveReview(reviewId: string): Promise<AdminReviewRecord
     method: "PATCH",
   });
 
-  return parseResponse<AdminReviewRecord>(response);
+  return parseAdminResponse<AdminReviewRecord>(response);
 }
 
 export async function deleteReview(reviewId: string): Promise<void> {
@@ -62,6 +54,6 @@ export async function deleteReview(reviewId: string): Promise<void> {
     method: "DELETE",
   });
 
-  await parseResponse<void>(response);
+  await parseAdminResponse<void>(response);
 }
 

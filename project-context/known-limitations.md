@@ -208,15 +208,41 @@ might be relied upon elsewhere.
     through the actual failure path interactively, so this wasn't verified
     in a live browser — only statically (types, lint, build, code review).
 24. **`/subscribe` is entirely simulated** (`setTimeout`, no backend call).
-25. **No shared API client module** — base URL + response-parsing logic is
-    copy-pasted across 7 `lib/*.ts` files.
+25. ~~**No shared API client module**~~ **RESOLVED.** New
+    `front-end/frontend/src/lib/api-client.ts` exports `API_BASE_URL` and
+    `parseApiResponse<T>()` (json-parse + throw-on-`!ok`, with a
+    per-caller fallback message); all 7 files that redefined this
+    (`auth.ts`, `product-api.ts`, `order-api.ts`, `review-api.ts`,
+    `user-api.ts`, `coupon-api.ts`, `context/CartContext.tsx`) now import
+    from it instead. Same fix applied on the admin side: `admin-api.ts`
+    (already home to the shared `adminFetch`) gained a matching
+    `parseAdminResponse<T>()`; the 7 `lib/admin-*-api.ts` files that each
+    redefined an identical local `parseResponse` now import the shared
+    one, and `admin-auth.ts` — which used to bypass `adminFetch` entirely
+    and call `fetch` directly with its own copy of `API_BASE_URL` — now
+    routes all 4 of its calls (`requestAdminOtp`, `verifyAdminOtp`,
+    `logoutAdmin`, `getCurrentAdmin`) through `adminFetch`/
+    `parseAdminResponse` like every other admin API module. Verified via
+    `tsc --noEmit` and a full `next build` on both apps (clean) plus the
+    backend's 42-test suite (unaffected, but exercised as part of the same
+    verification pass).
 26. ~~**No `.env` file committed**~~ **PARTIALLY RESOLVED.** `.env.example`
     now documents `NEXT_PUBLIC_API_BASE_URL` in both frontend apps (and a
     full `.env.example` exists for the backend). The underlying behavior is
     unchanged though: if the real `.env`/deploy env var is left unset, the
     app still silently falls back to `localhost:5000` rather than failing
     loudly — worth hardening if this causes a misconfigured-prod incident.
-27. `CoffeeQuiz.tsx` is dead code (built, never rendered).
+27. ~~**`CoffeeQuiz.tsx` is dead code (built, never rendered).**~~
+    **RESOLVED.** Deleted `components/quiz/CoffeeQuiz.tsx` (confirmed
+    zero imports via grep first) and the now-empty `components/quiz/`
+    directory. While in the same file, also removed the fully
+    commented-out "Command Center" JSX block in `app/profile/page.tsx`
+    (was dead since whatever removed it from render forgot to delete the
+    code) along with the now-orphaned `UserTasteRadar` component and
+    `USER_STATS` constant it was the only consumer of, and the unused
+    `User`, `Award`, `Leaf`, `Coffee` icon imports left behind. Verified
+    with `tsc --noEmit` and a full `next build` (clean) — this was pure
+    dead-code removal, no behavior change to any live page.
 27a. ~~**No per-page SEO metadata**~~ **RESOLVED.** Every page previously
      shared one generic `<title>`/description from the root layout — no
      `generateMetadata`/`robots.txt`/`sitemap.ts` existed anywhere. Fixed:
@@ -307,7 +333,26 @@ might be relied upon elsewhere.
      see `.github/workflows/ci.yml` for how CI provides one. Frontend test
      coverage (customer + admin) is still nonexistent — only the backend
      has tests so far.
-36. Multer config duplicated near-verbatim across 4+ route files.
+36. ~~**Multer config duplicated near-verbatim across 4+ route files.**~~
+    **RESOLVED.** New `backend/src/utils/imageUpload.js` exports
+    `createImageUploader(subdir)`, which builds the
+    `diskStorage`/`fileFilter`/`limits`/filename-sanitizer setup that was
+    copy-pasted across `uploadRoutes.js`, `adminUploadRoutes.js`,
+    `adminCategoryUploadRoutes.js`, and `reviewRoutes.js` (each now just
+    calls `createImageUploader("products" | "categories" | "reviews")`).
+    Also fixed the inconsistency noted in #44: `imageFileFilter` now
+    always throws `ApiError(400, ...)` instead of a plain `Error` — 3 of
+    the 4 routes used to throw the plain-`Error` version, which
+    `errorHandler` defaulted to `500` for what is actually a client
+    mistake (wrong file type). Verified live against the real backend:
+    all 4 disk-based upload endpoints (public product image, admin
+    product image, admin category image, review image) still accept
+    valid PNGs and save them correctly, and the fileFilter-rejection path
+    now correctly returns `400` on all 4 (previously `500` on 3 of them).
+    `adminProductRoutes.js`'s CSV bulk-upload uses `memoryStorage` for a
+    different file type and was correctly left untouched — not part of
+    this duplication. Backend's 42-test suite still passes. All
+    test-created files/DB rows cleaned up afterward.
 37. No centralized validation library — hand-rolled checks vary slightly
     between controllers for logically identical fields (e.g. zip regex).
 38. ~~`errorHandler` never logs errors server-side~~ **RESOLVED.** New
@@ -382,12 +427,11 @@ might be relied upon elsewhere.
     PNG/CSV via actual `multipart/form-data` requests (not mocked) — public
     product image, admin product image, admin category image, review
     image, and bulk CSV all returned `201`/`200` with correctly-saved
-    files; the `fileFilter` rejection path (wrong mimetype) still correctly
-    rejects, still as a `500` rather than a `400` (that `fileFilter` calls
-    `callback(new Error(...))` — a plain `Error`, not an `ApiError`, so it
-    has no `statusCode` for `errorHandler` to read; unrelated to and
-    unaffected by this upgrade — see #36 for the broader multer-config
-    duplication this is one symptom of). All test uploads cleaned up
+    files; the `fileFilter` rejection path (wrong mimetype) at the time
+    still correctly rejected but as a `500` rather than a `400` on 3 of
+    the 4 disk-upload routes (unrelated to and unaffected by this
+    upgrade) — see #36, where that inconsistency was later fixed as part
+    of centralizing the multer config. All test uploads cleaned up
     afterward. `npm audit`'s vulnerability count dropped from 9 to 6 as a
     side effect.
 45. ~~**No caching layer.**~~ **PARTIALLY RESOLVED.** New
@@ -440,6 +484,17 @@ might be relied upon elsewhere.
     the admin API, confirmed both actions appeared in the audit log with
     the correct admin phone number, method, path, and status code; an
     unauthenticated request to the audit log endpoint correctly got `401`.
+47. ~~**No index backing the product list's common filter/sort
+    combination.**~~ **RESOLVED.** `Product` gained a compound index —
+    `{ category: 1, basePrice: 1, inStock: 1 }` — matching the
+    category+price-range+in-stock filtering `GET /products` actually
+    does. Deliberately did **not** convert the `search` param to MongoDB's
+    `$text` index: `$text` only matches whole tokens, and the current
+    regex-based search supports substring/partial-word matches (e.g.
+    "ken" while typing finds "Kenya") — search-as-you-type UX on this
+    small a catalog matters more than the query-plan win `$text` would
+    give, so that would have been a regression disguised as an
+    optimization. See `database.md` for the index list.
 
 ## When to update this file
 

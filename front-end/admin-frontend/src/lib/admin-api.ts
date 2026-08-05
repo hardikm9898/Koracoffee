@@ -31,3 +31,19 @@ const withServerCookies = async (init: RequestInit = {}) => {
 export async function adminFetch(path: string, init: RequestInit = {}) {
   return fetch(buildAdminUrl(path), await withServerCookies(init));
 }
+
+// Every lib/admin-*-api.ts module used to redefine this exact
+// json-parse-then-throw-on-!ok logic. Centralized here alongside adminFetch
+// since every caller pairs the two together.
+export async function parseAdminResponse<T>(
+  response: Response,
+  fallbackMessage = "API request failed",
+): Promise<T> {
+  const payload = await response.json();
+
+  if (!response.ok) {
+    throw new Error(payload.message || fallbackMessage);
+  }
+
+  return payload.data as T;
+}

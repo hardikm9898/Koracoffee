@@ -1,4 +1,4 @@
-import { adminFetch } from "@/lib/admin-api";
+import { adminFetch, parseAdminResponse } from "@/lib/admin-api";
 
 export type AdminCouponRecord = {
   id: string;
@@ -26,17 +26,9 @@ export type AdminCouponInput = {
   expiresAt?: string | null;
 };
 
-const parseResponse = async <T>(response: Response): Promise<T> => {
-  const payload = await response.json();
-  if (!response.ok) {
-    throw new Error(payload.message || "API request failed");
-  }
-  return payload.data as T;
-};
-
 export async function getCoupons(): Promise<AdminCouponRecord[]> {
   const response = await adminFetch(`/admin/coupons`, { cache: "no-store" });
-  return parseResponse<AdminCouponRecord[]>(response);
+  return parseAdminResponse<AdminCouponRecord[]>(response);
 }
 
 export async function createCoupon(coupon: AdminCouponInput): Promise<AdminCouponRecord> {
@@ -45,7 +37,7 @@ export async function createCoupon(coupon: AdminCouponInput): Promise<AdminCoupo
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(coupon),
   });
-  return parseResponse<AdminCouponRecord>(response);
+  return parseAdminResponse<AdminCouponRecord>(response);
 }
 
 export async function updateCoupon(
@@ -57,12 +49,12 @@ export async function updateCoupon(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(coupon),
   });
-  return parseResponse<AdminCouponRecord>(response);
+  return parseAdminResponse<AdminCouponRecord>(response);
 }
 
 export async function deleteCoupon(couponId: string): Promise<void> {
   const response = await adminFetch(`/admin/coupons/${couponId}`, {
     method: "DELETE",
   });
-  await parseResponse<void>(response);
+  await parseAdminResponse<void>(response);
 }

@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { User, Package, Ticket, Settings, LogOut, Clock, MapPin, CreditCard, Award, Leaf, Coffee, ChevronDown, CheckCircle2, Truck, ReceiptText } from "lucide-react";
+import { Package, Ticket, Settings, LogOut, Clock, MapPin, CreditCard, ChevronDown, CheckCircle2, Truck, ReceiptText } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
@@ -80,9 +80,6 @@ const formatCouponDiscount = (coupon: CouponRecord) => {
 
 const formatCouponExpiry = (coupon: CouponRecord) =>
   coupon.expiresAt ? `Valid until ${new Date(coupon.expiresAt).toLocaleDateString()}` : "No expiry";
-
-// User's aggregated taste profile stats
-const USER_STATS = { acidity: 4, body: 2, sweetness: 5, complexity: 4, finish: 3 };
 
 type NormalizedOrderEntry = {
   id: string;
@@ -218,53 +215,6 @@ const normalizeOrderEntry = (order: OrderEntrySource): NormalizedOrderEntry => {
     steps,
     currentStep,
   };
-};
-
-const UserTasteRadar = () => {
-  const getPoint = (val: number, angleIndex: number) => {
-    const r = (val / 5) * 40; 
-    const angle = -Math.PI / 2 + (angleIndex * 2 * Math.PI / 5);
-    return `${50 + r * Math.cos(angle)},${50 + r * Math.sin(angle)}`;
-  };
-
-  const a = USER_STATS.acidity;
-  const s = USER_STATS.sweetness;
-  const f = USER_STATS.finish;
-  const b = USER_STATS.body;
-  const c = USER_STATS.complexity;
-
-  const points = `${getPoint(a, 0)} ${getPoint(s, 1)} ${getPoint(f, 2)} ${getPoint(b, 3)} ${getPoint(c, 4)}`;
-
-  return (
-    <div className="relative w-full aspect-square max-w-[220px] mx-auto">
-      <svg viewBox="0 0 100 100" className="w-full h-full overflow-visible">
-         {[1, 2, 3, 4, 5].map(level => {
-            const webPoints = [0, 1, 2, 3, 4].map(i => getPoint(level, i)).join(" ");
-            return <polygon key={level} points={webPoints} fill="none" stroke="rgba(0,0,0,0.05)" strokeWidth="0.5" />
-         })}
-         {[0, 1, 2, 3, 4].map(i => (
-           <line key={i} x1="50" y1="50" x2={getPoint(5, i).split(',')[0]} y2={getPoint(5, i).split(',')[1]} stroke="rgba(0,0,0,0.05)" strokeWidth="0.5" />
-         ))}
-
-         <motion.polygon 
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
-          points={points}
-          fill="rgba(198, 156, 109, 0.3)" 
-          stroke="rgb(198, 156, 109)" 
-          strokeWidth="1.5"
-          className="origin-center"
-        />
-      </svg>
-      {/* Labels */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 text-[8px] font-bold text-primary tracking-widest uppercase">Acidity</div>
-      <div className="absolute top-[30%] -right-4 translate-x-3 text-[8px] font-bold text-primary tracking-widest uppercase">Sweetness</div>
-      <div className="absolute bottom-[5%] right-0 translate-x-3 translate-y-3 text-[8px] font-bold text-primary tracking-widest uppercase">Finish</div>
-      <div className="absolute bottom-[5%] left-0 -translate-x-3 translate-y-3 text-[8px] font-bold text-primary tracking-widest uppercase">Body</div>
-      <div className="absolute top-[30%] -left-4 -translate-x-3 text-[8px] font-bold text-primary tracking-widest uppercase">Complexity</div>
-    </div>
-  );
 };
 
 const OrderTimeline = ({ order }: { order: ReturnType<typeof normalizeOrderEntry> }) => {
@@ -633,73 +583,6 @@ export default function ProfilePage() {
 
   return (
     <div className="page-shell container mx-auto min-h-screen px-6 md:px-12">
-      
-      {/* Command Center Top Section (Commented out as requested) */}
-      {/*
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-16">
-        
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="glass rounded-[2rem] p-10 lg:col-span-4 flex flex-col items-center justify-center text-center relative overflow-hidden border border-black/5 shadow-xl bg-white/50"
-        >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-[50px] -z-10" />
-          <div className="w-28 h-28 rounded-[2.5rem] bg-gradient-to-tr from-primary to-coffee-light p-1.5 flex items-center justify-center relative overflow-hidden shadow-2xl mb-6 rotate-3">
-             <div className="absolute inset-0 bg-black/10 rounded-[2.5rem]" />
-             <User className="w-12 h-12 text-white relative z-10 -rotate-3" />
-          </div>
-          <h1 className="text-3xl font-serif font-bold mb-2 text-foreground">{currentUser.name}</h1>
-          <p className="text-muted text-[10px] font-bold tracking-[0.2em] uppercase mb-8">
-            Verified {currentUser.phoneNumber}
-          </p>
-          <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl border border-primary/20 bg-primary/5 text-primary font-bold text-xs tracking-wider shadow-inner">
-            <Award className="w-4 h-4" /> Aura Elite Tier
-          </div>
-        </motion.div>
-
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="glass rounded-[2rem] p-10 lg:col-span-4 flex flex-col items-center justify-center relative border border-black/5 shadow-xl bg-white/50"
-        >
-          <h3 className="text-xl font-serif font-bold mb-1 w-full text-center text-foreground">Aura Signature</h3>
-          <p className="text-[10px] text-muted font-bold tracking-widest uppercase mb-8 w-full text-center">Your evolving taste profile</p>
-          <UserTasteRadar />
-        </motion.div>
-
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="glass rounded-[2rem] p-10 lg:col-span-4 flex flex-col justify-center relative overflow-hidden border border-black/5 shadow-xl bg-white/50"
-        >
-          <h3 className="text-xl font-serif font-bold mb-8 text-foreground">Milestones</h3>
-          <div className="space-y-5 w-full">
-            <div className="flex items-center gap-5 p-5 rounded-3xl bg-primary/5 border border-primary/10 relative overflow-hidden group shadow-sm transition-all hover:bg-primary/10">
-              <div className="w-14 h-14 rounded-2xl bg-primary text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                <Leaf className="w-7 h-7" />
-              </div>
-              <div>
-                <h4 className="font-bold text-foreground">Harvest Tier</h4>
-                <p className="text-[10px] text-primary font-bold tracking-widest uppercase">1,240 Ritual Points</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-5 p-5 rounded-3xl bg-black/5 border border-black/5 opacity-50 contrast-75 hover:opacity-80 transition-all cursor-not-allowed">
-              <div className="w-14 h-14 rounded-2xl bg-black/10 flex items-center justify-center border border-black/10">
-                <Coffee className="w-7 h-7 text-muted" />
-              </div>
-              <div>
-                <h4 className="font-bold text-muted">Master Roaster</h4>
-                <p className="text-[10px] text-muted font-bold tracking-widest uppercase">760 to next tier</p>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-      */}
-
       <div className="flex flex-col md:flex-row gap-12">
         {/* Sidebar Navigation */}
         <motion.div 

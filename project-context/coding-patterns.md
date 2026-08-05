@@ -24,7 +24,8 @@ exports.someAction = asyncHandler(async (req, res) => {
   validation pattern re-typed slightly differently in different files (e.g.
   zip regex differs between `userController` and `orderController`).
 - Response envelope is always `{ success: bool, message?, data }` — the
-  frontends' `parseResponse()` helpers assume this shape.
+  frontends' `parseApiResponse()`/`parseAdminResponse()` helpers assume this
+  shape.
 
 ### Admin vs public routes
 
@@ -36,12 +37,16 @@ different logic — check the public equivalent first.
 
 ### File uploads
 
-`multer` config (storage engine, filename sanitizer, mimetype filter) is
-copy-pasted per route file rather than shared. Filenames:
-`<Date.now()>-<sanitized-original-name>`. If adding a new upload endpoint,
-follow the existing pattern in `uploadRoutes.js`/`adminCategoryUploadRoutes.js`
-rather than introducing a new approach — but consider extracting a shared
-module if touching more than one of these files in the same task.
+Disk-based image uploads (`uploadRoutes.js`, `adminUploadRoutes.js`,
+`adminCategoryUploadRoutes.js`, `reviewRoutes.js`) share one factory:
+`createImageUploader(subdir)` in `utils/imageUpload.js`, which builds the
+`diskStorage`/`fileFilter`/`limits`/filename-sanitizer multer instance
+(filenames: `<Date.now()>-<sanitized-original-name>`, saved under
+`public/uploads/<subdir>`, mimetype rejections throw `ApiError(400, ...)`).
+Call it with the target subdir (`"products"` / `"categories"` / `"reviews"`)
+rather than hand-rolling a new multer config. `adminProductRoutes.js`'s CSV
+bulk-upload uses `memoryStorage` directly — different file type, not part of
+this factory, don't route it through `createImageUploader`.
 
 ### IDs
 
@@ -55,37 +60,36 @@ ObjectId — do not switch these to `_id` without a full migration plan.
 
 ### API client pattern
 
-Every `lib/*-api.ts` file follows this shape (hand-rolled per file, not
-shared — see [known-limitations.md](known-limitations.md)):
+Both apps now share one response-parsing helper per app instead of each
+`lib/*-api.ts` file redefining it. Shape:
 
 ```ts
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api";
-
-async function parseResponse<T>(response: Response): Promise<T> {
-  const payload = await response.json();
-  if (!response.ok) throw new Error(payload.message || "API request failed");
-  return payload.data as T;
-}
-
 export async function someCall(...) {
-  const response = await fetch(`${API_BASE_URL}/resource`, {
+  const response = await fetch(`${API_BASE_URL}/resource`, {  // or adminFetch(path, ...) on the admin side
     method: "...",
     headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body: JSON.stringify(...),
     cache: "no-store",
   });
-  return parseResponse<T>(response);
+  return parseApiResponse<T>(response, "Fallback error message");  // parseAdminResponse<T>(...) on the admin side
 }
 ```
 
+- Customer app: `API_BASE_URL` and `parseApiResponse<T>(response, fallbackMessage?)`
+  live in `lib/api-client.ts` — import both from there rather than
+  redefining them locally. `fallbackMessage` defaults to `"API request
+  failed"` if omitted; pass a more specific one where the original code had
+  one.
+- Admin app: `adminFetch(path, init)` and `parseAdminResponse<T>(response,
+  fallbackMessage?)` both live in `lib/admin-api.ts`. `adminFetch` always
+  sends `credentials: "include"` (and forwards cookies on SSR calls) — call
+  it instead of raw `fetch` for every admin API request, including auth
+  (`lib/admin-auth.ts` used to bypass it for login/logout; it doesn't
+  anymore).
 - File uploads switch to `FormData` bodies with no manual `Content-Type`
   (browser sets the multipart boundary).
-- Admin app centralizes this into `adminFetch()` (`lib/admin-api.ts`) that
-  individual `lib/admin-*-api.ts` files call — closer to a real shared client
-  than the customer app, which has no shared wrapper at all.
-- When adding a new API call: **follow the existing file's local pattern**
-  (copy the nearest sibling function) rather than introducing a new
-  abstraction — the codebase does not have a central client to extend.
+- When adding a new API call: reuse the shared helper, and otherwise follow
+  the nearest sibling function's shape in the same file.
 
 ### Component conventions
 

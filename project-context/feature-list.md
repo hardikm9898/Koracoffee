@@ -36,7 +36,6 @@ see [known-limitations.md](known-limitations.md) for the full fix history.
 - **Admin dashboard channel performance** — 100% hardcoded mock data (no channel/attribution field exists in the schema — a missing feature, not a bug; code now says so explicitly).
 - **Admin dashboard "Priority tasks" / "Segment notes" / "Activity feed" (static parts)** — hardcoded content styled like live data (unrelated to the real `getRecentActivities` feed also on the dashboard, which is real).
 - **Admin settings page** — static display, no functionality.
-- **Customer "Coffee Matchmaker" quiz** — built, never rendered (dead code).
 - **Customer profile "Secure Payment", "Account Rituals" tabs** — placeholder-only.
 - **SMS/OTP delivery** — no actual delivery mechanism exists yet; `otpSender.js` is a ready-to-configure abstraction that intentionally fails loudly in production until a real provider is wired in. OTP itself is now always randomly generated (no longer hardcoded). Blocked on a provider account, see [blocked-external-resources.md](blocked-external-resources.md).
 

@@ -40,7 +40,9 @@ services/                addressService, cartService, couponService, otpService,
                          otpSender, pricingService, tokenService
 middlewares/             authMiddleware, auditLog, errorHandler, notFound, rateLimiters
 utils/                  ApiError, adminAuth, asyncHandler, cache (in-process
-                         TTL cache — product/category list caching), logger (pino)
+                         TTL cache — product/category list caching),
+                         imageUpload (shared multer config factory for
+                         disk-based image uploads), logger (pino)
 public/uploads/          products/, categories/, reviews/ (served at /uploads)
 data/productSeed.js      24 hardcoded coffee products
 seeders/seedProducts.js  wipes + reseeds Product/Category
@@ -51,7 +53,8 @@ seeders/backfillAddresses.js  one-time: migrates legacy embedded
                          re-run (idempotent)
 tests/                   jest + supertest integration tests (setup.js,
                          helpers.js, order.test.js, cart.test.js, auth.test.js,
-                         coupon.test.js, referentialIntegrity.test.js, cache.test.js)
+                         coupon.test.js, referentialIntegrity.test.js,
+                         cache.test.js, auditLog.test.js)
 jest.config.js           jest config (setupFilesAfterEnv → tests/setup.js)
 .env                     local secrets (gitignored)
 .env.example             documents every env var (MONGODB_URI, JWT_SECRET,
@@ -74,12 +77,12 @@ components/
   home/                   AnnouncementBar, DeferredVideo, FloatingCups,
                           ImageBannerSlider, ScrollAnimation
   layout/                 Navbar, Footer
-  quiz/                   CoffeeQuiz (dead code, not rendered anywhere)
   shop/                   ProductDetailClient
 context/CartContext.tsx  cart + favorites (both persisted — cart to the
                          backend, favorites to localStorage) global state
-lib/                     auth, coupon-api, data, order-api, product-api,
-                         review-api, user-api, utils
+lib/                     api-client (shared API_BASE_URL + response
+                         parsing), auth, coupon-api, data, order-api,
+                         product-api, review-api, user-api, utils
 ```
 
 Root-level stray files (not part of the app runtime): `bg_remover.py`,
@@ -94,7 +97,9 @@ app/                     Next.js App Router pages — see routing.md
 components/admin/        AdminAppShell, AdminCard (exports SampleDataBadge),
                          AdminSidebar, AdminTopbar, ProductForm,
                          RecentActivitiesCard, SalesOverviewCard
-lib/                     admin-analytics-api, admin-api (shared fetch wrapper),
+lib/                     admin-analytics-api, admin-api (shared adminFetch
+                         wrapper + parseAdminResponse — every admin-*-api
+                         file, including admin-auth, imports both),
                          admin-audit-log-api, admin-auth, admin-coupon-api,
                          admin-data (static/mock content + legacy-named
                          re-exports), admin-order-api, admin-product-api

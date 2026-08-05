@@ -78,11 +78,13 @@ src/
   expected failures. `errorHandler` middleware turns any error into
   `{ success:false, message }` with `err.statusCode || 500`, and logs it via
   `utils/logger.js` (error level with stack trace for `5xx`, warn for `4xx`).
-- **File uploads**: multer is configured independently (copy-pasted) in 5
-  different route files rather than a shared module. Uploaded files are saved
-  under `src/public/uploads/{products,categories,reviews}/` and referenced by
-  **absolute URL** (built from `req.protocol`/`req.get("host")`, no `trust proxy`
-  configured) stored directly on the DB documents.
+- **File uploads**: the 4 disk-based image upload routes share one multer
+  config factory, `createImageUploader(subdir)` (`utils/imageUpload.js`);
+  `adminProductRoutes.js`'s CSV bulk-upload configures `memoryStorage`
+  separately (different file type, not part of the factory). Uploaded files
+  are saved under `src/public/uploads/{products,categories,reviews}/` and
+  referenced by **absolute URL** (built from `req.protocol`/`req.get("host")`,
+  no `trust proxy` configured) stored directly on the DB documents.
 
 ## Where to look next
 

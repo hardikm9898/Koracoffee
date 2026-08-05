@@ -94,8 +94,9 @@ front-end/frontend/src/lib/data.ts
 - Assuming shop filters are client-side — they trigger a fresh `GET /api/products`
   request on every change; there's no local filtering of an already-fetched set.
 - Forgetting the `limit ≤ 30` cap on `GET /api/products` when building any
-  "fetch everything" logic (several unrelated features misuse `limit:100` —
-  see [known-limitations.md](../known-limitations.md) #(cart/offers/quiz notes)).
+  "fetch everything" logic — some unrelated features request `limit:100`,
+  relying on the cap silently clamping it rather than requesting the right
+  value.
 
 ## Future Extension Points
 

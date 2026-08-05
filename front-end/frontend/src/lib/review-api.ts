@@ -1,3 +1,5 @@
+import { API_BASE_URL, parseApiResponse } from "./api-client";
+
 export type ReviewRecord = {
   id: string;
   productId: number;
@@ -14,21 +16,13 @@ export type ProductReviewsResponse = {
   items: ReviewRecord[];
 };
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api";
-
 export async function getProductReviews(productId: number, limit = 10): Promise<ProductReviewsResponse> {
   const response = await fetch(
     `${API_BASE_URL}/reviews?productId=${encodeURIComponent(String(productId))}&limit=${encodeURIComponent(String(limit))}`,
     { cache: "no-store" },
   );
 
-  const payload = await response.json();
-  if (!response.ok) {
-    throw new Error(payload.message || "Failed to fetch reviews");
-  }
-
-  return payload.data as ProductReviewsResponse;
+  return parseApiResponse<ProductReviewsResponse>(response, "Failed to fetch reviews");
 }
 
 export async function createReview(input: {
@@ -52,11 +46,9 @@ export async function createReview(input: {
     body: formData,
   });
 
-  const payload = await response.json();
-  if (!response.ok) {
-    throw new Error(payload.message || "Failed to submit review");
-  }
-
-  return payload.data as { message: string; review: ReviewRecord };
+  return parseApiResponse<{ message: string; review: ReviewRecord }>(
+    response,
+    "Failed to submit review",
+  );
 }
 

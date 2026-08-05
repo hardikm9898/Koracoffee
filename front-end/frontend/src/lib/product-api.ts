@@ -1,3 +1,5 @@
+import { API_BASE_URL, parseApiResponse } from "./api-client";
+
 export type ProductVariantRecord = {
   label: string;
   price: number;
@@ -74,9 +76,6 @@ type ProductQuery = {
   maxPrice?: number;
 };
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api";
-
 const buildQueryString = (query: ProductQuery) => {
   const params = new URLSearchParams();
 
@@ -99,13 +98,7 @@ export async function getProducts(
     },
   );
 
-  const payload = await response.json();
-
-  if (!response.ok) {
-    throw new Error(payload.message || "Failed to fetch products");
-  }
-
-  return payload.data as ProductListResponse;
+  return parseApiResponse<ProductListResponse>(response, "Failed to fetch products");
 }
 
 export async function getProductById(
@@ -119,13 +112,7 @@ export async function getProductById(
     return null;
   }
 
-  const payload = await response.json();
-
-  if (!response.ok) {
-    throw new Error(payload.message || "Failed to fetch product");
-  }
-
-  return payload.data as ProductRecord;
+  return parseApiResponse<ProductRecord>(response, "Failed to fetch product");
 }
 
 export async function getCategories(): Promise<CategoryRecord[]> {
@@ -133,11 +120,5 @@ export async function getCategories(): Promise<CategoryRecord[]> {
     cache: "no-store",
   });
 
-  const payload = await response.json();
-
-  if (!response.ok) {
-    throw new Error(payload.message || "Failed to fetch categories");
-  }
-
-  return payload.data as CategoryRecord[];
+  return parseApiResponse<CategoryRecord[]>(response, "Failed to fetch categories");
 }

@@ -1,4 +1,4 @@
-import { adminFetch } from "@/lib/admin-api";
+import { adminFetch, parseAdminResponse } from "@/lib/admin-api";
 
 export type AdminUserRecord = {
   id: string;
@@ -67,14 +67,6 @@ type AdminUserQuery = {
   search?: string;
 };
 
-const parseResponse = async <T>(response: Response): Promise<T> => {
-  const payload = await response.json();
-  if (!response.ok) {
-    throw new Error(payload.message || "API request failed");
-  }
-  return payload.data as T;
-};
-
 const buildQuery = (query: AdminUserQuery) => {
   const params = new URLSearchParams();
   if (query.page) params.set("page", String(query.page));
@@ -95,7 +87,7 @@ export async function getUsers(
     cache: "no-store",
   });
 
-  return parseResponse<AdminUserListResponse>(response);
+  return parseAdminResponse<AdminUserListResponse>(response);
 }
 
 export async function getUserById(userId: string): Promise<AdminUserRecord> {
@@ -103,7 +95,7 @@ export async function getUserById(userId: string): Promise<AdminUserRecord> {
     cache: "no-store",
   });
 
-  return parseResponse<AdminUserRecord>(response);
+  return parseAdminResponse<AdminUserRecord>(response);
 }
 
 export async function getUserOrderHistory(userId: string, limit = 50): Promise<AdminUserOrderHistory> {
@@ -111,7 +103,7 @@ export async function getUserOrderHistory(userId: string, limit = 50): Promise<A
     cache: "no-store",
   });
 
-  return parseResponse<AdminUserOrderHistory>(response);
+  return parseAdminResponse<AdminUserOrderHistory>(response);
 }
 
 export async function updateUser(
@@ -126,7 +118,7 @@ export async function updateUser(
     body: JSON.stringify(user),
   });
 
-  return parseResponse<AdminUserRecord>(response);
+  return parseAdminResponse<AdminUserRecord>(response);
 }
 
 export async function deleteUser(userId: string): Promise<void> {
@@ -134,5 +126,5 @@ export async function deleteUser(userId: string): Promise<void> {
     method: "DELETE",
   });
 
-  await parseResponse<void>(response);
+  await parseAdminResponse<void>(response);
 }

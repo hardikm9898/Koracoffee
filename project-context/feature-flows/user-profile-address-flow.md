@@ -35,10 +35,14 @@ and see their order history.
 `app/profile/page.tsx` — redirects to `/login` if no stored session. Tabs:
 **Order History** (real, via `getOrders()` + `normalizeOrderEntry`/`OrderTimeline`,
 falls back to a hardcoded mock array while loading), **Vault Addresses** (full
-CRUD form), **Exclusive Offers** (hardcoded coupon display, non-functional
-button), **Secure Payment**/**Account Rituals** (both unimplemented
-placeholders). A large "Command Center" hero block (avatar, taste radar,
-loyalty points) exists in source but is fully commented out.
+CRUD form), **Exclusive Offers** (real, via `getActiveCoupons()` — see
+[coupon-flow.md](coupon-flow.md); "Lock In Reward" is a working `Link` to
+`/checkout`), **Secure Payment**/**Account Rituals** (both unimplemented
+placeholders). The page used to also have a large "Command Center" hero
+block (avatar, taste radar, loyalty points) left in source fully commented
+out — deleted as dead code, along with the `UserTasteRadar` component and
+`USER_STATS` constant it was the only consumer of; see
+[known-limitations.md](../known-limitations.md) #27.
 
 Address management is also reused inside `app/checkout/page.tsx`'s Shipping
 step (same `lib/user-api.ts` functions).
@@ -91,8 +95,7 @@ front-end/frontend/src/lib/order-api.ts
 ## Common Mistakes
 
 - Looking for `User.addresses` (embedded) — it no longer exists; `Address` is the only store.
-- Assuming the commented-out "Command Center" block in `profile/page.tsx` is
-  active UI — it's dead code left in source.
+
 ## Future Extension Points
 
 - Implement the "Secure Payment" and "Account Rituals" tabs, or remove them.

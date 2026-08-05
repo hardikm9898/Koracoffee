@@ -11,7 +11,6 @@
 | `home/DeferredVideo.tsx` | Defers loading a `<video>` by 1.5s (LCP optimization). |
 | `home/FloatingCups.tsx` | Purely decorative animated background icons. |
 | `home/ScrollAnimation.tsx` | Generic reusable viewport-triggered framer-motion wrapper (`fade-up`/`fade-left`/`fade-right`/`bounce`/`scale-up`), used across many pages. |
-| `quiz/CoffeeQuiz.tsx` | Built but **not rendered anywhere** — dead code. A 3-question product-recommendation quiz. |
 | `shop/ProductDetailClient.tsx` | Product detail page body: variant selection, image gallery, add-to-cart, reviews list + submission form. Only consumed by `shop/[id]/page.tsx`. |
 
 ## Admin frontend (`front-end/admin-frontend/src/components/admin/`)

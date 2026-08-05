@@ -1,3 +1,5 @@
+import { API_BASE_URL } from "./api-client";
+
 export const AUTH_STORAGE_KEY = "aura_auth_session";
 export const GUEST_SESSION_STORAGE_KEY = "aura_guest_session_id";
 
@@ -25,8 +27,6 @@ export type AuthSession = {
   user: AuthUser;
 };
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api";
 const SESSION_VALIDATION_WINDOW_MS = 60 * 1000;
 
 let lastValidatedToken = "";
