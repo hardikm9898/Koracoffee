@@ -114,6 +114,24 @@ See [admin-dashboard-analytics-flow.md](feature-flows/admin-dashboard-analytics-
 
 Same CRUD shape as public categories, plus `POST /upload-image` (`adminCategoryUploadRoutes.js`, `multer.single("image")`).
 
+## Coupons — `/api/coupons` (`couponRoutes.js` → `couponController.js`) — public
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/` | active (non-expired), lists all fields except `usedCount`/`maxUses` |
+| GET | `/validate?code=&subtotal=` | preview a discount; `400` if invalid/expired/inactive/below `minOrderAmount`/at `maxUses` |
+
+## Admin Coupons — `/api/admin/coupons` (all `admin` auth)
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/` | all coupons, including inactive/expired, with `usedCount`/`maxUses` |
+| POST | `/` | create; `409` on duplicate `code`, `400` if `type:"percent"` and `value > 100` |
+| PATCH | `/:id` | partial update |
+| DELETE | `/:id` | delete |
+
+See [coupon-flow.md](feature-flows/coupon-flow.md) for full detail, including a real percent-math bug this replaced.
+
 ## Admin Orders — `/api/admin/orders` (all `admin` auth)
 
 Reuses `orderController`'s `listOrders` (`GET /?page=&limit=&status=&search=`,

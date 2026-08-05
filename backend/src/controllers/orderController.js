@@ -4,6 +4,7 @@ const asyncHandler = require("../utils/asyncHandler");
 const ApiError = require("../utils/ApiError");
 const { findUserCart, findGuestCart } = require("../services/cartService");
 const { resolveItemPrice } = require("../services/pricingService");
+const { resolveCoupon, incrementCouponUsage } = require("../services/couponService");
 
 const normalizeSessionId = (value = "") => String(value).trim();
 
@@ -74,57 +75,6 @@ const serializeOrder = (order) => ({
   createdAt: order.createdAt,
   updatedAt: order.updatedAt,
 });
-
-const COUPONS = {
-  AURA20: {
-    type: "percent",
-    value: 20,
-    label: "20% off your order",
-  },
-  FREESHIP: {
-    type: "shipping",
-    value: 1,
-    label: "Free shipping",
-  },
-  WELCOME50: {
-    type: "flat",
-    value: 50,
-    label: "₹50 off your order",
-  },
-};
-
-const getCouponDetails = (code) => {
-  const normalized = String(code || "")
-    .trim()
-    .toUpperCase();
-  if (!normalized) return null;
-  return COUPONS[normalized] || null;
-};
-
-const calculateCouponDiscount = (coupon, subtotal, shippingFee, tax) => {
-  if (!coupon) {
-    return { discountAmount: 0, discountLabel: "" };
-  }
-
-  const orderAmount = subtotal + shippingFee + tax;
-
-  switch (coupon.type) {
-    case "percent": {
-      const discountAmount = Math.round(orderAmount * coupon.value * 100) / 100;
-      return { discountAmount, discountLabel: coupon.label };
-    }
-    case "shipping": {
-      const discountAmount = Math.min(shippingFee, shippingFee);
-      return { discountAmount, discountLabel: coupon.label };
-    }
-    case "flat": {
-      const discountAmount = Math.min(coupon.value, orderAmount);
-      return { discountAmount, discountLabel: coupon.label };
-    }
-    default:
-      return { discountAmount: 0, discountLabel: "" };
-  }
-};
 
 const groupItemsByProductVariant = (items) =>
   Object.values(
@@ -353,17 +303,17 @@ const buildOrderPayload = async (body = {}) => {
   const couponCode = String(body.couponCode || "")
     .trim()
     .toUpperCase();
-  const coupon = couponCode ? getCouponDetails(couponCode) : null;
-  if (couponCode && !coupon) {
-    throw new ApiError(400, "Coupon code is invalid or expired");
-  }
-
-  const { discountAmount, discountLabel } = calculateCouponDiscount(
-    coupon,
+  const { coupon, error: couponError } = await resolveCoupon(couponCode, {
     subtotal,
     shippingFee,
     tax,
-  );
+  });
+  if (couponCode && !coupon) {
+    throw new ApiError(400, couponError || "Coupon code is invalid or expired");
+  }
+
+  const discountAmount = coupon?.discountAmount || 0;
+  const discountLabel = coupon?.label || "";
   const total =
     Math.round((subtotal + shippingFee + tax - discountAmount) * 100) / 100;
 
@@ -552,6 +502,10 @@ const createOrder = asyncHandler(async (req, res) => {
       ),
     );
     throw err;
+  }
+
+  if (payload.couponCode) {
+    await incrementCouponUsage(payload.couponCode);
   }
 
   await clearOrderedItemsFromCart({

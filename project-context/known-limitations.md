@@ -136,9 +136,11 @@ might be relied upon elsewhere.
     populated at checkout), not a bug fix. Now has an explicit
     "INTENTIONALLY MOCKED" comment in the code so it doesn't get mistaken
     for a bug again. Still tracked as a real gap.
-17. Coupon `"FREESHIP"` discount calculation, `Math.min(shippingFee, shippingFee)`,
-    is a no-op/self-comparison that happens to work only because `shippingFee`
-    is a fixed constant — fragile if that constant ever becomes dynamic.
+17. ~~Coupon `"FREESHIP"` discount calculation, `Math.min(shippingFee, shippingFee)`~~
+    **RESOLVED** — this whole calculation was replaced by
+    `services/couponService.js`, which sets `discountAmount = shippingFee`
+    directly for `type: "shipping"` coupons, no self-comparison. See
+    [coupon-flow.md](feature-flows/coupon-flow.md).
 
 ## Frontend — customer app
 
@@ -155,7 +157,16 @@ might be relied upon elsewhere.
     yet UI copy claims "Secure Stripe Payment" / "AES-256 bank-level encryption".
 20. **`createOrder()` hardcodes `shipping.email: "customer@aura.coffee"`** —
     the checkout form never actually collects an email.
-21. **Coupons are 100% client-side** — no backend validation.
+21. ~~**Coupons are 100% client-side**~~ **RESOLVED.** A real `Coupon`
+    model + `services/couponService.js` (shared by a public preview
+    endpoint and order creation) replaced the hardcoded tables in both
+    frontends and the backend. This fix also caught and fixed a genuine,
+    previously-undiscovered bug: the old backend's percent-off formula
+    used the raw stored value (`20` for "20%") instead of `value/100`,
+    so applying `AURA20` always computed a ~2000% discount and order
+    creation always failed with `400`. See
+    [coupon-flow.md](feature-flows/coupon-flow.md) for the full writeup and
+    live verification, both before and after the fix.
 22. **`GET /orders` (order history) is called with no Authorization header**
     from `profile/page.tsx` — inconsistent with every other authenticated call.
 23. ~~**Order-placement failures are silently swallowed**~~ **RESOLVED.**

@@ -4,8 +4,9 @@
 
 All mounted under `/api` in `backend/src/app.js`. See [api-reference.md](api-reference.md)
 for the full endpoint list. Prefixes: `/auth`, `/users`, `/cart`, `/products`,
-`/categories`, `/orders`, `/reviews`, `/admin/analytics`, `/admin/products`,
-`/admin/categories`, `/admin/orders`, `/admin/reviews`, `/admin/users`.
+`/categories`, `/orders`, `/reviews`, `/coupons`, `/admin/analytics`,
+`/admin/products`, `/admin/categories`, `/admin/orders`, `/admin/reviews`,
+`/admin/users`, `/admin/coupons`.
 
 ## Customer frontend — `front-end/frontend/src/app/`
 
@@ -40,7 +41,8 @@ Root `layout.tsx` wraps everything in `AppProvider` (cart/favorites context) + p
 | `/products/[productId]/edit` | `products/[productId]/edit/page.tsx` | Server wrapper → `ProductForm` | Edit product |
 | `/products/bulk-upload` | `products/bulk-upload/page.tsx` | Client | CSV bulk upload, dry-run preview |
 | `/categories` | `categories/page.tsx` | Client | Category CRUD |
-| `/orders` | `orders/page.tsx` | Client | Order list, status update, cancel/refund reason capture |
+| `/coupons` | `coupons/page.tsx` | Client | Coupon CRUD (percent/flat/free-shipping, usage caps, expiry) |
+| `/orders` | `orders/page.tsx` | Client | Order list — server-side pagination/search/status filter, status update, cancel/refund reason capture |
 | `/orders/[orderId]` | `orders/[orderId]/page.tsx` | Server | Read-only order detail (no 404 guard) |
 | `/customers` | `customers/page.tsx` | Client | Paginated customer list, segment cards |
 | `/customers/[userId]` | `customers/[userId]/page.tsx` | Client | Customer order history/spend |

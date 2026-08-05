@@ -149,8 +149,24 @@ reference — intentional for order/review history stability, but means product
 name/price changes never retroactively affect past carts/orders/reviews
 (carts do get stale prices until re-added, though — see [cart-flow.md](feature-flows/cart-flow.md)).
 
-## Coupons are not a database table
+## Coupon (`models/Coupon.js`)
 
-There is no `Coupon` model. Valid codes (`AURA20`, `FREESHIP`, `WELCOME50`) are
-hardcoded in `orderController.js` (backend) and separately hardcoded again in
-the checkout/profile frontend pages. See [checkout-order-flow.md](feature-flows/checkout-order-flow.md).
+| Field | Type | Notes |
+|---|---|---|
+| `code` | String | required, unique, `uppercase: true` |
+| `type` | String enum | `percent`, `flat`, `shipping` |
+| `value` | Number | default 0 — **for `percent`, a whole number (20 means 20%), not a fraction**; for `flat`, a currency amount; unused for `shipping` |
+| `label` | String | required — customer-facing display text |
+| `active` | Boolean | default `true` |
+| `minOrderAmount` | Number | default 0 |
+| `maxUses` | Number | default `null` (unlimited) |
+| `usedCount` | Number | default 0 — incremented only after a real order completes with the code |
+| `expiresAt` | Date | default `null` (never) |
+
+Added 2026-08-05, replacing three hardcoded codes (`AURA20`, `FREESHIP`,
+`WELCOME50`) that used to be duplicated independently in the backend *and*
+both frontends. See [coupon-flow.md](feature-flows/coupon-flow.md) — this
+also caught a real bug in the old backend's percent-off math (missing
+`/100`, meaning `AURA20` could never successfully complete an order).
+`backend/src/seeders/seedCoupons.js` re-seeds those three legacy codes
+(upsert, safe to re-run, never wipes other coupons).

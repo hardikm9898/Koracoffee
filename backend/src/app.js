@@ -21,6 +21,8 @@ const adminCategoryRoutes = require("./routes/adminCategoryRoutes");
 const adminOrderRoutes = require("./routes/adminOrderRoutes");
 const adminUploadRoutes = require("./routes/adminUploadRoutes");
 const adminCategoryUploadRoutes = require("./routes/adminCategoryUploadRoutes");
+const couponRoutes = require("./routes/couponRoutes");
+const adminCouponRoutes = require("./routes/adminCouponRoutes");
 const notFound = require("./middlewares/notFound");
 const errorHandler = require("./middlewares/errorHandler");
 
@@ -85,6 +87,8 @@ app.use("/api/admin/categories", adminCategoryRoutes);
 app.use("/api/admin/orders", adminOrderRoutes);
 app.use("/api/admin/products/upload-image", adminUploadRoutes);
 app.use("/api/admin/categories/upload-image", adminCategoryUploadRoutes);
+app.use("/api/coupons", couponRoutes);
+app.use("/api/admin/coupons", adminCouponRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

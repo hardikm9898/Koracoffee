@@ -2,8 +2,8 @@
 
 Path: `front-end/admin-frontend/` · Next.js 16.1.6 (App Router) · React 19.2.3 · TypeScript · Tailwind CSS v4
 
-"Aura Admin" — internal dashboard for managing products, categories, orders,
-customers, and reviews.
+"Aura Admin" — internal dashboard for managing products, categories,
+coupons, orders, customers, and reviews.
 
 ## Stack
 
@@ -48,8 +48,7 @@ See [coding-patterns.md](coding-patterns.md).
   `lib/admin-data.ts` styled identically to live panels.
 - **Customer edit/delete UI doesn't exist** even though `lib/admin-user-api.ts`
   fully supports `updateUser`/`deleteUser`/`getUserById` — dead/unused exports.
-- **Order list has no server-side pagination** — `getOrders()` fetches every
-  order; all filtering/sorting is client-side `useMemo`, won't scale.
+- ~~Order list has no server-side pagination~~ **Fixed** — real server-side pagination/search/status-filter now, see [known-limitations.md](known-limitations.md) #31.
 - **Order detail page has no 404 guard** (`orders/[orderId]/page.tsx`) unlike
   the equivalent products page — a bad order ID likely crashes the page.
 - **Refund amounts are estimated client-side** for display, independent of
@@ -65,4 +64,4 @@ Full details in [known-limitations.md](known-limitations.md).
 
 - Page-by-page map → [routing.md](routing.md)
 - Shared UI (AdminAppShell, AdminSidebar, AdminCard, ProductForm) → [shared-components.md](shared-components.md)
-- Per-feature detail → [feature-flows/admin-*.md](feature-flows/)
+- Per-feature detail → [feature-flows/admin-*.md](feature-flows/), [feature-flows/coupon-flow.md](feature-flows/coupon-flow.md)

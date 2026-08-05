@@ -12,7 +12,8 @@ lists see [database.md](database.md); for full routes see [api-reference.md](api
 | Products | `Product`, `Category`, `Review` (rating agg) | — | `productController` | `productRoutes` | `adminProductRoutes` (reuses `productController`) |
 | Categories | `Category` | — | `categoryController` | `categoryRoutes` | `adminCategoryRoutes` (reuses `categoryController`) |
 | Cart | `Cart` | `cartService`, `pricingService` (price resolution) | `cartController` | `cartRoutes` | — (no admin cart view) |
-| Orders | `Order`, `Product` (stock) | `cartService` (post-order cleanup), `pricingService` (price resolution) | `orderController` | `orderRoutes` | `adminOrderRoutes` (reuses `orderController`) |
+| Orders | `Order`, `Product` (stock) | `cartService` (post-order cleanup), `pricingService` (price resolution), `couponService` (discount resolution) | `orderController` | `orderRoutes` | `adminOrderRoutes` (reuses `orderController`) |
+| Coupons | `Coupon` | `couponService` (shared with Orders) | `couponController` (public preview/list) | `couponRoutes` | `adminCouponController` + `adminCouponRoutes` — separate files |
 | Reviews | `Review`, `Product` (existence check) | — | `reviewController` (create/list) | `reviewRoutes` | `adminReviewController` (approve/delete/list) — separate file |
 | Uploads | — | — | `uploadController` | `uploadRoutes` | `adminUploadRoutes`/`adminCategoryUploadRoutes` (reuse `uploadController`) |
 | Bulk product import | `Product`, `Category` | — | `adminBulkProductController` | — | `adminProductRoutes` (`/bulk-upload`) |
@@ -44,8 +45,8 @@ routers for these resources have no auth on mutating verbs).
 | `cart/page.tsx`, `offers/page.tsx`, `CoffeeQuiz.tsx` | `lib/data.ts` (re-export shim over `product-api.ts` + static `VARIANTS`) |
 | `app/page.tsx`, `shop/[id]/page.tsx`, `ShopClient.tsx`, `ProductDetailClient.tsx` | `lib/product-api.ts` directly |
 | `ProductDetailClient.tsx` | `lib/review-api.ts` |
-| `checkout/page.tsx` | `lib/order-api.ts` (create), `lib/user-api.ts` (addresses) |
-| `profile/page.tsx` | `lib/order-api.ts` (history), `lib/user-api.ts` (profile + addresses) |
+| `checkout/page.tsx` | `lib/order-api.ts` (create), `lib/user-api.ts` (addresses), `lib/coupon-api.ts` (preview) |
+| `profile/page.tsx` | `lib/order-api.ts` (history), `lib/user-api.ts` (profile + addresses), `lib/coupon-api.ts` (active offers) |
 
 ## Admin frontend: page → lib dependency
 
@@ -55,6 +56,7 @@ routers for these resources have no auth on mutating verbs).
 | `login/page.tsx` | `lib/admin-auth.ts` |
 | `products/*` pages, `ProductForm.tsx` | `lib/admin-product-api.ts` |
 | `categories/page.tsx` | `lib/admin-product-api.ts` (category functions live here) |
+| `coupons/page.tsx` | `lib/admin-coupon-api.ts` (has its own dedicated file, unlike categories) |
 | `orders/*` pages | `lib/admin-order-api.ts` |
 | `customers/*` pages | `lib/admin-user-api.ts`, `lib/admin-data.ts` (static segments) |
 | `reviews/page.tsx` | `lib/admin-review-api.ts` |

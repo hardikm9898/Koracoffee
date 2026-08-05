@@ -24,24 +24,28 @@ actually run — see [known-limitations.md](known-limitations.md) #42.
 app.js                  Express app + middleware chain
 server.js               boot (dotenv, connectDB, listen)
 config/db.js            Mongoose connection
-models/                 Address, Cart, Category, Order, Product, Review, User
+models/                 Address, Cart, Category, Coupon, Order, Product, Review, User
 routes/                 authRoutes, userRoutes, cartRoutes, productRoutes,
                          categoryRoutes, orderRoutes, reviewRoutes, uploadRoutes,
+                         couponRoutes, adminCouponRoutes,
                          admin{Analytics,Category,CategoryUpload,Order,Product,
                          Review,Upload,User}Routes
 controllers/            authController, userController, cartController,
                          productController, categoryController, orderController,
-                         reviewController, uploadController,
+                         reviewController, uploadController, couponController,
+                         adminCouponController,
                          admin{Analytics,BulkProduct,Review,User}Controller
-services/                addressService, cartService, otpService, otpSender,
-                         pricingService, tokenService
+services/                addressService, cartService, couponService, otpService,
+                         otpSender, pricingService, tokenService
 middlewares/             authMiddleware, errorHandler, notFound, rateLimiters
 utils/                  ApiError, adminAuth, asyncHandler, logger (pino)
 public/uploads/          products/, categories/, reviews/ (served at /uploads)
 data/productSeed.js      24 hardcoded coffee products
 seeders/seedProducts.js  wipes + reseeds Product/Category
+seeders/seedCoupons.js   upserts 3 legacy coupon codes (never wipes)
 tests/                   jest + supertest integration tests (setup.js,
-                         helpers.js, order.test.js, cart.test.js, auth.test.js)
+                         helpers.js, order.test.js, cart.test.js, auth.test.js,
+                         coupon.test.js)
 jest.config.js           jest config (setupFilesAfterEnv → tests/setup.js)
 .env                     local secrets (gitignored)
 .env.example             documents every env var (MONGODB_URI, JWT_SECRET,
@@ -66,9 +70,10 @@ components/
   layout/                 Navbar, Footer
   quiz/                   CoffeeQuiz (dead code, not rendered anywhere)
   shop/                   ProductDetailClient
-context/CartContext.tsx  cart + favorites global state
-lib/                     auth, data, order-api, product-api, review-api,
-                         user-api, utils
+context/CartContext.tsx  cart + favorites (both persisted — cart to the
+                         backend, favorites to localStorage) global state
+lib/                     auth, coupon-api, data, order-api, product-api,
+                         review-api, user-api, utils
 ```
 
 Root-level stray files (not part of the app runtime): `bg_remover.py`,
@@ -78,11 +83,12 @@ Root-level stray files (not part of the app runtime): `bg_remover.py`,
 
 ```
 app/                     Next.js App Router pages — see routing.md
+  coupons/                admin coupon management (list/create/edit/delete)
 components/admin/        AdminAppShell, AdminCard, AdminSidebar, AdminTopbar,
                          ProductForm, RecentActivitiesCard, SalesOverviewCard
 lib/                     admin-analytics-api, admin-api (shared fetch wrapper),
-                         admin-auth, admin-data (static/mock content +
-                         legacy-named re-exports), admin-order-api,
+                         admin-auth, admin-coupon-api, admin-data (static/mock
+                         content + legacy-named re-exports), admin-order-api,
                          admin-product-api (also holds category CRUD),
                          admin-review-api, admin-user-api, utils
 proxy.ts                 Next.js middleware — auth route guard (not a CORS proxy)

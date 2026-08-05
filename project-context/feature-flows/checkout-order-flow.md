@@ -54,10 +54,10 @@ See [admin-order-management-flow.md](admin-order-management-flow.md) for status 
   name/image) from `Product`, ignoring whatever price the client sent.
   `subtotal` = sum(resolved price × qty); `shippingFee` fixed at `5.0`; `tax`
   = 8% of subtotal; `total` = subtotal + shipping + tax − discount.
-- **Coupons are hardcoded server-side** in `orderController.js`: `AURA20`
-  (20% off), `FREESHIP` (waives shipping), `WELCOME50` (flat ₹50 off, capped
-  at order amount). No `Coupon` model. The frontend **separately** hardcodes
-  the same three codes for its own preview UI — the two lists can drift.
+- **Coupons are a real `Coupon` model now**, resolved via the shared
+  `services/couponService.js` — see [coupon-flow.md](coupon-flow.md) for
+  the full flow (this also caught and fixed a real bug in the old
+  hardcoded percent-off math).
 - **Stock is validated and decremented atomically, before order creation**:
   `applyOrderInventoryChanges` runs first, one grouped `(productId, variant)`
   line item at a time, via a single `findOneAndUpdate` whose query condition
@@ -113,15 +113,14 @@ front-end/frontend/src/lib/user-api.ts
 
 ## Common Mistakes
 
-- Assuming coupon codes are validated against a database — they're hardcoded
-  in two separate places (backend controller + frontend page).
 - Assuming `advanceOrderStatus` and `updateOrderStatus` enforce the same
   transition rules — they don't; `updateOrderStatus` is far more permissive.
 
 ## Future Extension Points
 
 - Integrate a real payment gateway before this can process real transactions.
-- Move coupons into a real `Coupon` model with backend-only validation.
+- ~~Move coupons into a real `Coupon` model with backend-only validation.~~
+  **Done** — see [coupon-flow.md](coupon-flow.md).
 - ~~Re-derive order item price from `Product`/variant data server-side.~~ **Done.**
 - ~~Wrap order creation + stock decrement in a Mongoose transaction.~~ **Not
   applicable on this deployment** (standalone MongoDB, no replica set) —

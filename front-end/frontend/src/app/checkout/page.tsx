@@ -10,16 +10,11 @@ import { cn } from "@/lib/utils";
 import { createOrder } from "@/lib/order-api";
 import { getStoredSession } from "@/lib/auth";
 import { addUserAddress, getUserAddresses, updateUserAddress, type AddressRecord } from "@/lib/user-api";
+import { validateCoupon } from "@/lib/coupon-api";
 import Confetti from "react-confetti";
 import useWindowSize from "react-use/lib/useWindowSize";
 
 const STEPS = ["Shipping", "Payment", "Review"];
-
-const AVAILABLE_COUPONS: Record<string, { label: string; type: "percent" | "shipping" | "flat"; value: number }> = {
-  AURA20: { label: "20% OFF", type: "percent", value: 0.2 },
-  FREESHIP: { label: "FREE SHIPPING", type: "shipping", value: 1 },
-  WELCOME50: { label: "₹50 OFF", type: "flat", value: 50 },
-};
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -45,6 +40,7 @@ export default function CheckoutPage() {
   const [couponCode, setCouponCode] = useState("");
   const [couponMessage, setCouponMessage] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; label: string; discount: number } | null>(null);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [addresses, setAddresses] = useState<AddressRecord[]>([]);
@@ -106,43 +102,33 @@ export default function CheckoutPage() {
     setSaveAsDefault(Boolean(address.isDefault));
   }, []);
 
-  const getCouponDefinition = (code: string) => {
-    return AVAILABLE_COUPONS[String(code || "").trim().toUpperCase()] || null;
-  };
-
-  const calculateCouponDiscount = (coupon: { type: string; value: number } | null) => {
-    if (!coupon) return 0;
-
-    const shipping = 5.0;
-    const tax = cartTotal * 0.08;
-    const orderAmount = cartTotal + shipping + tax;
-
-    if (coupon.type === "percent") {
-      return Math.round(orderAmount * coupon.value * 100) / 100;
-    }
-
-    if (coupon.type === "shipping") {
-      return shipping;
-    }
-
-    if (coupon.type === "flat") {
-      return Math.min(coupon.value, orderAmount);
-    }
-
-    return 0;
-  };
-
-  const applyCoupon = () => {
-    const coupon = getCouponDefinition(couponCode);
-    if (!coupon) {
+  // Preview only — services/couponService.js on the backend is authoritative
+  // at order-creation time, using the exact same math. This used to be a
+  // fully client-side hardcoded coupon table (independently duplicated,
+  // with different math, in the backend too) — that also carried a real
+  // bug where applying AURA20 server-side always failed order creation
+  // outright. See project-context/known-limitations.md.
+  const applyCoupon = async () => {
+    const code = couponCode.trim();
+    if (!code) {
       setAppliedCoupon(null);
-      setCouponMessage("Coupon code is invalid or expired.");
+      setCouponMessage("Enter a coupon code.");
       return;
     }
 
-    const discount = calculateCouponDiscount(coupon);
-    setAppliedCoupon({ code: couponCode.toUpperCase().trim(), label: coupon.label, discount });
-    setCouponMessage(`Coupon applied: ${coupon.label}`);
+    setIsApplyingCoupon(true);
+    try {
+      const result = await validateCoupon(code, cartTotal);
+      setAppliedCoupon({ code: result.code, label: result.label, discount: result.discountAmount });
+      setCouponMessage(`Coupon applied: ${result.label}`);
+    } catch (error) {
+      setAppliedCoupon(null);
+      setCouponMessage(
+        error instanceof Error ? error.message : "Coupon code is invalid or expired.",
+      );
+    } finally {
+      setIsApplyingCoupon(false);
+    }
   };
 
   const loadSavedAddresses = useCallback(async () => {
@@ -948,10 +934,11 @@ export default function CheckoutPage() {
                   />
                   <button
                     type="button"
-                    onClick={applyCoupon}
-                    className="bg-primary text-white rounded-2xl px-5 py-3 font-bold hover:bg-foreground transition-colors"
+                    onClick={() => void applyCoupon()}
+                    disabled={isApplyingCoupon}
+                    className="bg-primary text-white rounded-2xl px-5 py-3 font-bold hover:bg-foreground transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    Apply
+                    {isApplyingCoupon ? "Checking…" : "Apply"}
                   </button>
                 </div>
                 {couponMessage && (

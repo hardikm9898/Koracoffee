@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import Image from "next/image";
+import Link from "next/link";
 import { User, Package, Ticket, Settings, LogOut, Clock, MapPin, CreditCard, Award, Leaf, Coffee, ChevronDown, CheckCircle2, Truck, ReceiptText } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -15,6 +16,7 @@ import {
   type AddressRecord,
 } from "@/lib/user-api";
 import { getOrders, type OrderItem, type OrderRecord } from "@/lib/order-api";
+import { getActiveCoupons, type CouponRecord } from "@/lib/coupon-api";
 
 const ORDERS = [
   {
@@ -66,10 +68,18 @@ const ORDERS = [
   },
 ] as unknown as OrderRecord[];
 
-const COUPONS = [
-  { code: "AURA20", discount: "20% OFF", expiry: "Valid until Dec 2024", description: "Holiday special valid on all single origin roasts." },
-  { code: "FREESHIP", discount: "FREE SHIPPING", expiry: "Valid on next order", description: "Complimentary shipping for our loyal members." },
-];
+// Coupons were previously a hardcoded array here (and, separately, a
+// different hardcoded array in checkout/page.tsx, with different math in
+// the backend on top of that). All three are gone now — this page fetches
+// real active coupons from the backend's Coupon model.
+const formatCouponDiscount = (coupon: CouponRecord) => {
+  if (coupon.type === "percent") return `${coupon.value}% OFF`;
+  if (coupon.type === "flat") return `₹${coupon.value} OFF`;
+  return "FREE SHIPPING";
+};
+
+const formatCouponExpiry = (coupon: CouponRecord) =>
+  coupon.expiresAt ? `Valid until ${new Date(coupon.expiresAt).toLocaleDateString()}` : "No expiry";
 
 // User's aggregated taste profile stats
 const USER_STATS = { acidity: 4, body: 2, sweetness: 5, complexity: 4, finish: 3 };
@@ -449,6 +459,8 @@ export default function ProfilePage() {
   const [orders, setOrders] = useState<OrderRecord[]>(ORDERS);
   const [ordersLoading, setOrdersLoading] = useState(true);
   const orderEntries = ordersLoading ? ORDERS : orders;
+  const [coupons, setCoupons] = useState<CouponRecord[]>([]);
+  const [couponsLoading, setCouponsLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
@@ -473,6 +485,31 @@ export default function ProfilePage() {
     };
 
     void loadUserData();
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let ignore = false;
+
+    const loadCoupons = async () => {
+      try {
+        const activeCoupons = await getActiveCoupons();
+        if (!ignore) {
+          setCoupons(activeCoupons);
+        }
+      } catch (error) {
+        console.warn("Unable to load coupons", error);
+      } finally {
+        if (!ignore) {
+          setCouponsLoading(false);
+        }
+      }
+    };
+
+    void loadCoupons();
 
     return () => {
       ignore = true;
@@ -734,32 +771,41 @@ export default function ProfilePage() {
           {activeTab === "coupons" && (
             <div className="space-y-8">
               <h2 className="text-3xl font-serif font-bold mb-8 text-foreground">Aura <span className="gradient-text italic">Benefits</span></h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {COUPONS.map((coupon, i) => (
-                  <div key={i} className="glass rounded-[2rem] overflow-hidden relative group border border-black/5 shadow-xl bg-white/50 hover:border-primary/30 transition-all">
-                    <div className="absolute top-0 left-0 w-2.5 h-full bg-primary" />
-                    <div className="p-10 ml-2">
-                      <div className="flex items-start justify-between mb-6">
-                        <span className="bg-primary/5 text-primary font-mono font-black text-lg px-4 py-2 rounded-xl border border-primary/20 select-all tracking-wider shadow-inner">
-                          {coupon.code}
-                        </span>
-                        <Ticket className="w-8 h-8 text-primary/40 group-hover:text-primary transition-colors" />
-                      </div>
-                      <h3 className="text-4xl font-black mb-4 text-foreground tracking-tight">{coupon.discount}</h3>
-                      <p className="text-sm text-muted mb-8 leading-relaxed font-medium">{coupon.description}</p>
-                      
-                      <div className="flex flex-col gap-6">
-                         <p className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] flex items-center gap-2">
-                           <Clock className="w-3.5 h-3.5" /> {coupon.expiry}
-                         </p>
-                         <button className="w-full py-4.5 bg-black/5 hover:bg-primary text-foreground hover:text-white font-black text-xs uppercase tracking-widest rounded-2xl transition-all duration-300 border border-black/5 hover:border-transparent shadow-sm">
-                           Lock In Reward
-                         </button>
+              {couponsLoading ? (
+                <p className="text-sm text-muted">Loading offers…</p>
+              ) : coupons.length === 0 ? (
+                <p className="text-sm text-muted">No active offers right now — check back soon.</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {coupons.map((coupon) => (
+                    <div key={coupon.code} className="glass rounded-[2rem] overflow-hidden relative group border border-black/5 shadow-xl bg-white/50 hover:border-primary/30 transition-all">
+                      <div className="absolute top-0 left-0 w-2.5 h-full bg-primary" />
+                      <div className="p-10 ml-2">
+                        <div className="flex items-start justify-between mb-6">
+                          <span className="bg-primary/5 text-primary font-mono font-black text-lg px-4 py-2 rounded-xl border border-primary/20 select-all tracking-wider shadow-inner">
+                            {coupon.code}
+                          </span>
+                          <Ticket className="w-8 h-8 text-primary/40 group-hover:text-primary transition-colors" />
+                        </div>
+                        <h3 className="text-4xl font-black mb-4 text-foreground tracking-tight">{formatCouponDiscount(coupon)}</h3>
+                        <p className="text-sm text-muted mb-8 leading-relaxed font-medium">{coupon.label}</p>
+
+                        <div className="flex flex-col gap-6">
+                           <p className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] flex items-center gap-2">
+                             <Clock className="w-3.5 h-3.5" /> {formatCouponExpiry(coupon)}
+                           </p>
+                           <Link
+                             href="/checkout"
+                             className="w-full text-center py-4.5 bg-black/5 hover:bg-primary text-foreground hover:text-white font-black text-xs uppercase tracking-widest rounded-2xl transition-all duration-300 border border-black/5 hover:border-transparent shadow-sm"
+                           >
+                             Use at Checkout
+                           </Link>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

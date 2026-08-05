@@ -62,7 +62,8 @@ DB tables, business rules, dependencies, files involved, common mistakes, extens
 - [authentication-flow.md](feature-flows/authentication-flow.md) — phone+OTP login for customers and admins
 - [product-catalog-flow.md](feature-flows/product-catalog-flow.md) — browsing, search, filter, product detail
 - [cart-flow.md](feature-flows/cart-flow.md) — guest + logged-in cart, session merge
-- [checkout-order-flow.md](feature-flows/checkout-order-flow.md) — checkout wizard, order creation, coupons, order status
+- [checkout-order-flow.md](feature-flows/checkout-order-flow.md) — checkout wizard, order creation, order status
+- [coupon-flow.md](feature-flows/coupon-flow.md) — coupon CRUD, discount math, admin management
 - [review-flow.md](feature-flows/review-flow.md) — customer review submission + moderation queue
 - [user-profile-address-flow.md](feature-flows/user-profile-address-flow.md) — profile, saved addresses, order history
 - [admin-dashboard-analytics-flow.md](feature-flows/admin-dashboard-analytics-flow.md) — admin overview stats, revenue, activity feed
