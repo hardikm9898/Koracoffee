@@ -43,14 +43,16 @@ const getOverviewStats = asyncHandler(async (req, res) => {
   const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
   const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  // Gross revenue calculation
+  // Gross revenue calculation. Order.status values are capitalized
+  // ("Cancelled", not "cancelled") — this used to compare against the
+  // lowercase strings and therefore never excluded anything.
   const [currentRevenueResult, lastMonthRevenueResult] = await Promise.all([
     Order.aggregate([
-      { $match: { createdAt: { $gte: thisMonth }, status: { $ne: "cancelled" } } },
+      { $match: { createdAt: { $gte: thisMonth }, status: { $nin: NON_REVENUE_STATUSES } } },
       { $group: { _id: null, total: { $sum: "$total" } } }
     ]),
     Order.aggregate([
-      { $match: { createdAt: { $gte: lastMonth, $lt: thisMonth }, status: { $ne: "cancelled" } } },
+      { $match: { createdAt: { $gte: lastMonth, $lt: thisMonth }, status: { $nin: NON_REVENUE_STATUSES } } },
       { $group: { _id: null, total: { $sum: "$total" } } }
     ])
   ]);
@@ -59,19 +61,25 @@ const getOverviewStats = asyncHandler(async (req, res) => {
   const lastMonthRevenue = lastMonthRevenueResult[0]?.total || 0;
   const revenueDelta = lastMonthRevenue > 0 ? ((currentRevenue - lastMonthRevenue) / lastMonthRevenue * 100) : 0;
 
-  // Orders fulfilled
+  // Orders fulfilled. "Delivered" is the only terminal-success status in the
+  // schema — "completed"/"delivered" (lowercase) never matched anything.
   const [currentOrdersResult, lastMonthOrdersResult] = await Promise.all([
-    Order.countDocuments({ createdAt: { $gte: thisMonth }, status: { $in: ["delivered", "completed"] } }),
-    Order.countDocuments({ createdAt: { $gte: lastMonth, $lt: thisMonth }, status: { $in: ["delivered", "completed"] } })
+    Order.countDocuments({ createdAt: { $gte: thisMonth }, status: "Delivered" }),
+    Order.countDocuments({ createdAt: { $gte: lastMonth, $lt: thisMonth }, status: "Delivered" })
   ]);
 
   const ordersDelta = lastMonthOrdersResult > 0 ? ((currentOrdersResult - lastMonthOrdersResult) / lastMonthOrdersResult * 100) : 0;
 
-  // Returning customers (simplified - users with more than one order)
+  // Returning customers (simplified - users with more than one order).
+  // Order has a `user` ref, not `userId` — grouping by a nonexistent field
+  // used to silently return an empty result every time. Guest/pre-migration
+  // orders (user: null) are excluded so they don't get counted as one
+  // "customer" with many orders.
   const [totalCustomers, returningCustomers] = await Promise.all([
     User.countDocuments(),
     Order.aggregate([
-      { $group: { _id: "$userId", orderCount: { $sum: 1 } } },
+      { $match: { user: { $ne: null } } },
+      { $group: { _id: "$user", orderCount: { $sum: 1 } } },
       { $match: { orderCount: { $gt: 1 } } },
       { $count: "returning" }
     ])
@@ -135,7 +143,7 @@ const getRevenueSeries = asyncHandler(async (req, res) => {
       {
         $match: {
           createdAt: { $gte: startOfDay, $lt: endOfDay },
-          status: { $ne: "cancelled" }
+          status: { $nin: NON_REVENUE_STATUSES }
         }
       },
       { $group: { _id: null, total: { $sum: "$total" } } }
@@ -155,8 +163,11 @@ const getRevenueSeries = asyncHandler(async (req, res) => {
 });
 
 const getChannelPerformance = asyncHandler(async (req, res) => {
-  // This is a simplified version - in a real app you'd track order sources
-  // For now, we'll return placeholder data that matches the frontend expectations
+  // INTENTIONALLY MOCKED — there is no channel/attribution field anywhere
+  // in the schema (Order has no UTM/referrer/source data), so there is
+  // nothing real to aggregate yet. This is a known gap (not a bug fixed in
+  // this pass) — see known-limitations.md. Implementing it for real means
+  // adding a source field to Order and populating it at checkout time.
   const channels = [
     { name: "Direct", share: 42, revenue: "₹35.4k", trend: "+12%" },
     { name: "Instagram", share: 23, revenue: "₹19.1k", trend: "+18%" },
@@ -170,11 +181,16 @@ const getChannelPerformance = asyncHandler(async (req, res) => {
   });
 });
 
+// Orders not yet at a terminal state (Delivered/Cancelled/Refunded) are
+// still "in the queue". The previous status list ("pending"/"confirmed"/
+// "packing"/"ready") didn't match any value in the real Order.status enum,
+// so this always returned an empty array.
+const QUEUE_STATUSES = ["Received", "Roasting", "Packaging", "Shipped"];
+
 const getFulfillmentQueue = asyncHandler(async (req, res) => {
   const orders = await Order.find({
-    status: { $in: ["pending", "confirmed", "packing", "ready"] }
+    status: { $in: QUEUE_STATUSES }
   })
-  .populate('userId', 'name')
   .sort({ createdAt: -1 })
   .limit(10)
   .lean();
@@ -184,7 +200,7 @@ const getFulfillmentQueue = asyncHandler(async (req, res) => {
     customer: order.shipping?.name || 'Unknown',
     items: order.items.map(item => `${item.name} x${item.quantity}`).join(', '),
     total: `₹${order.total.toFixed(2)}`,
-    status: order.status.charAt(0).toUpperCase() + order.status.slice(1),
+    status: order.status,
     eta: getETA(order.status, order.createdAt)
   }));
 
@@ -194,23 +210,45 @@ const getFulfillmentQueue = asyncHandler(async (req, res) => {
   });
 });
 
+const LOW_STOCK_THRESHOLD = 5;
+
 const getProductInventory = asyncHandler(async (req, res) => {
+  // `category` is an ObjectId ref, not a string — calling .slice() on it
+  // (as this used to) throws at runtime. Populate the name explicitly.
   const products = await Product.find({})
-    .select('name category basePrice inStock rating')
+    .select('name category basePrice inStock rating variants')
+    .populate('category', 'name')
     .sort({ createdAt: -1 })
     .limit(20)
     .lean();
 
-  // Generate mock inventory data based on products
-  const inventory = products.map((product, index) => ({
-    name: product.name,
-    sku: `AUR-${product.category.slice(0, 3).toUpperCase()}-${String(index + 1).padStart(3, '0')}`,
-    category: product.category,
-    stock: product.inStock ? Math.floor(Math.random() * 100) + 20 : Math.floor(Math.random() * 20),
-    sellThrough: `${Math.floor(Math.random() * 40) + 50}%`,
-    status: product.inStock ? (Math.random() > 0.8 ? "Low" : "Healthy") : "Critical",
-    nextBatch: new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-  }));
+  const inventory = products.map((product, index) => {
+    const categoryName = product.category?.name || 'General';
+    const variantStocks = Array.isArray(product.variants)
+      ? product.variants.map((v) => v.stock).filter((s) => Number.isFinite(s))
+      : [];
+    // null (not 0/fake) when this product doesn't track per-variant stock —
+    // an honest "unknown" beats a made-up number.
+    const totalStock = variantStocks.length > 0
+      ? variantStocks.reduce((sum, s) => sum + s, 0)
+      : null;
+    const minVariantStock = variantStocks.length > 0 ? Math.min(...variantStocks) : null;
+
+    let status = "Healthy";
+    if (!product.inStock) {
+      status = "Critical";
+    } else if (minVariantStock !== null && minVariantStock <= LOW_STOCK_THRESHOLD) {
+      status = "Low";
+    }
+
+    return {
+      name: product.name,
+      sku: `AUR-${categoryName.slice(0, 3).toUpperCase()}-${String(index + 1).padStart(3, '0')}`,
+      category: categoryName,
+      stock: totalStock,
+      status,
+    };
+  });
 
   res.status(200).json({
     success: true,
@@ -224,14 +262,14 @@ function getETA(status, createdAt) {
   const hoursSince = (now - created) / (1000 * 60 * 60);
 
   switch (status.toLowerCase()) {
-    case 'pending':
-      return 'Processing order';
-    case 'confirmed':
-      return 'Preparing items';
-    case 'packing':
+    case 'received':
+      return 'Queued for roasting';
+    case 'roasting':
+      return `Ready in ${Math.max(1, 4 - Math.floor(hoursSince))} hours`;
+    case 'packaging':
       return `Ready in ${Math.max(1, 2 - Math.floor(hoursSince))} hours`;
-    case 'ready':
-      return 'Dispatch at 2:30 PM';
+    case 'shipped':
+      return 'Out for delivery';
     default:
       return 'Processing';
   }

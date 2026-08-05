@@ -78,23 +78,45 @@ might be relied upon elsewhere.
     for `Product`s still referencing it (orphaned ref). Deleting a `Product`
     doesn't clean up related `Review`s (orphaned `productId`).
 
-## Broken admin analytics (`adminAnalyticsController.js`)
+## Admin analytics (`adminAnalyticsController.js`)
 
-12. **Status-enum casing bug.** `getOverviewStats`, `getRevenueSeries`, and
-    `getFulfillmentQueue` compare `Order.status` against **lowercase** values
-    (`"cancelled"`, `"delivered"`, `"completed"`, `"pending"`, etc.) but the
-    real enum is capitalized (`"Cancelled"`, `"Delivered"`, ...) — these
-    queries silently return empty/zero results. Only `getSalesOverview` uses
-    the correct casing, proving this is an oversight, not a convention.
-13. **`getOverviewStats`'s "returning customers" aggregation groups by
-    `$userId`**, a field that doesn't exist on `Order` — always empty,
-    `retentionRate` is always effectively 0.
-14. **`getFulfillmentQueue` populates a non-existent `userId` field** — no-op.
-15. **`getProductInventory` likely throws at runtime**: calls
-    `product.category.slice(0, 3)` where `category` is an unpopulated
-    ObjectId (no `.slice()` method) — and even the fields that don't throw
-    are `Math.random()`-generated fake data, not real inventory.
-16. **`getChannelPerformance` returns 100% hardcoded mock data.**
+12. ~~**Status-enum casing bug.**~~ **RESOLVED.** `getOverviewStats` and
+    `getRevenueSeries` now use `{ $nin: NON_REVENUE_STATUSES }` (the same
+    constant `getSalesOverview` already used correctly) instead of comparing
+    against lowercase strings; "orders fulfilled" now matches `status: "Delivered"`
+    exactly (there is no `"completed"` status in the schema — that half of
+    the old `$in` clause could never match anything). Verified live against
+    real data: gross revenue and orders-fulfilled now return non-zero values.
+13. ~~**`getOverviewStats`'s "returning customers" aggregation groups by
+    `$userId`**~~ **RESOLVED.** Now groups by `Order.user` (the real field,
+    added in an earlier fix — see #6), with a `$match: { user: { $ne: null } }`
+    first so guest/pre-migration orders (`user: null`) aren't miscounted as
+    one repeat customer.
+14. ~~**`getFulfillmentQueue` populates a non-existent `userId` field**~~
+    **RESOLVED** — the no-op `.populate('userId', ...)` call was removed
+    (customer name already came from `order.shipping.name`, unaffected). The
+    status filter itself was also fixed — see #12's pattern; it now matches
+    `["Received","Roasting","Packaging","Shipped"]`, the real non-terminal
+    statuses, instead of a list that matched nothing. `getETA()`'s switch
+    cases were updated to match these real (lowercased) status strings too.
+    Verified live: returns `200` with real (possibly empty, correctly so)
+    data instead of an unconditionally-empty array.
+15. ~~**`getProductInventory` likely throws at runtime**~~ **RESOLVED.** The
+    query now `.populate('category', 'name')` instead of treating the raw
+    ObjectId as a string. `stock`/`status` are now derived from real
+    `Product.variants[].stock` (`stock: null` when a product has no
+    per-variant tracking — an honest "unknown" instead of a random number);
+    the `sellThrough`/`nextBatch` fields were removed entirely since there
+    was no real data source for them (faking them was worse than omitting
+    them) — the admin-frontend `AdminProductInventoryItem` type was updated
+    to match. Verified live: returns `200` with real category names and
+    honest stock/status values instead of 500ing.
+16. **`getChannelPerformance` returns 100% hardcoded mock data.** Left as-is
+    — there is no channel/attribution field anywhere in the schema to
+    aggregate from; this needs a real feature (a `source` field on `Order`
+    populated at checkout), not a bug fix. Now has an explicit
+    "INTENTIONALLY MOCKED" comment in the code so it doesn't get mistaken
+    for a bug again. Still tracked as a real gap.
 17. Coupon `"FREESHIP"` discount calculation, `Math.min(shippingFee, shippingFee)`,
     is a no-op/self-comparison that happens to work only because `shippingFee`
     is a fixed constant — fragile if that constant ever becomes dynamic.

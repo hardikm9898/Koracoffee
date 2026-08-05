@@ -33,10 +33,12 @@ export type AdminProductInventoryItem = {
   name: string;
   sku: string;
   category: string;
-  stock: number;
-  sellThrough: string;
+  // null when the product doesn't track per-variant stock (no honest number
+  // to report). sellThrough/nextBatch were removed from the backend
+  // response — they were Math.random()-generated placeholders with no real
+  // data source; re-add only once there's an actual metric to compute.
+  stock: number | null;
   status: string;
-  nextBatch: string;
 };
 
 export type AdminSalesOverviewPeriod = "daily" | "weekly" | "monthly";
