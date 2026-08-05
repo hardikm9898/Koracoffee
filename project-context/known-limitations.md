@@ -142,8 +142,15 @@ might be relied upon elsewhere.
 
 ## Frontend — customer app
 
-18. **Favorites are not persisted** (in-memory Context only) despite a
-    dedicated `/favorites` page and Navbar badge.
+18. ~~**Favorites are not persisted**~~ **RESOLVED (localStorage).**
+    `CartContext.tsx` now hydrates `favorites` from `localStorage`
+    (`aura_favorites`) on mount and writes back on every change. Scoped
+    deliberately to localStorage-only, not a full backend-synced wishlist
+    (the cart's pattern) — this fixes the actual bug (silent data loss on
+    refresh) without building a bigger feature. Verified via full type-check,
+    lint, and production build; no browser tool available to click through
+    it interactively — see the note this pattern already established for
+    the checkout-error fix.
 19. **Checkout's payment step is a non-functional visual mockup** (`**** **** **** 4242`),
     yet UI copy claims "Secure Stripe Payment" / "AES-256 bank-level encryption".
 20. **`createOrder()` hardcodes `shipping.email: "customer@aura.coffee"`** —

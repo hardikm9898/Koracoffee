@@ -73,9 +73,11 @@ None — there is no admin view of customer carts.
 - Cart initialization on the frontend runs once per mount (`didInitialize`
   ref guard): attach-then-fetch if a session exists, else just fetch. Re-runs
   on the `"auth-changed"` window event (login/logout elsewhere in the app).
-- **Favorites live in the same Context but are NOT persisted anywhere**
-  (plain `useState`, no localStorage/backend) — a page refresh clears them.
-  This is a real gap, not by design intent evident anywhere in the code.
+- **Favorites live in the same Context and now persist to `localStorage`**
+  (`aura_favorites`, hydrated on mount, written back on every change) —
+  unlike the cart, this is localStorage-only, not backend-synced (no
+  guest→user merge-on-login equivalent to `attach-session` exists for
+  favorites; they're per-browser, not per-account).
 
 ## Dependencies
 
@@ -98,13 +100,16 @@ front-end/frontend/src/app/cart/page.tsx
 
 - Assuming the cart is client-side/localStorage — it's fully backend-persisted;
   every mutation is a network round-trip.
-- Assuming favorites persist across sessions/refreshes — they don't (known gap).
+- Assuming favorites sync across devices/browsers — they're localStorage-only,
+  not tied to the account, so they don't.
 - Forgetting that shipping fee (₹5 flat, free above ₹50) and 8% tax are
   computed **independently and redundantly** in both `cart/page.tsx` and
   `checkout/page.tsx` — a formula change must be applied in both places.
 
 ## Future Extension Points
 
-- Persist favorites (localStorage at minimum, or a backend `Favorite`/wishlist
-  collection tied to `User`) if the feature should actually work.
+- ~~Persist favorites~~ **Done (localStorage).** A backend `Favorite`/wishlist
+  collection tied to `User` (syncing across devices, merging a guest's
+  favorites on login like the cart does) is the natural next step if that
+  becomes a real requirement.
 - Centralize the shipping/tax calculation instead of duplicating it per page.

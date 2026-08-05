@@ -45,8 +45,7 @@ generated session ID, merged into the user's cart on login. See
 
 ## Notable gaps / things NOT implemented
 
-- **Favorites are not persisted** — in-memory Context state only, lost on
-  refresh, despite a dedicated `/favorites` page and Navbar badge.
+- ~~**Favorites are not persisted**~~ **Fixed (localStorage)** — see [known-limitations.md](known-limitations.md) #18.
 - **Payment step in checkout is a static visual mockup** — no gateway
   integration (no Stripe/Razorpay SDK), despite UI copy claiming otherwise.
 - **`/subscribe` flow is entirely simulated** (`setTimeout`, no backend call).

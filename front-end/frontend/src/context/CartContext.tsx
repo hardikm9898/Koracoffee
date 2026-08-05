@@ -59,11 +59,50 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api";
 
+// Favorites previously lived in plain useState with no persistence at all —
+// a page refresh silently wiped them despite a dedicated /favorites page
+// and a Navbar badge implying otherwise. localStorage-only (not
+// backend-synced like the cart) is a deliberate scope choice: it fixes the
+// actual bug (data loss on refresh) without building a full wishlist
+// backend feature. See project-context/known-limitations.md.
+const FAVORITES_STORAGE_KEY = "aura_favorites";
+
+const readStoredFavorites = (): Product[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(FAVORITES_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
 export function AppProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [favorites, setFavorites] = useState<Product[]>([]);
   const [isCartReady, setIsCartReady] = useState(false);
   const didInitialize = useRef(false);
+  const didHydrateFavorites = useRef(false);
+
+  // Hydrate from localStorage after mount (SSR has no access to it — the
+  // initial render always starts empty, then this fills it in).
+  useEffect(() => {
+    setFavorites(readStoredFavorites());
+    didHydrateFavorites.current = true;
+  }, []);
+
+  // Persist on every change, but skip the write hydration itself triggers
+  // (it would just write back exactly what was read).
+  useEffect(() => {
+    if (!didHydrateFavorites.current) return;
+    if (typeof window === "undefined") return;
+    try {
+      localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favorites));
+    } catch {
+      // localStorage might be unavailable (private browsing, quota, etc.)
+    }
+  }, [favorites]);
 
   const syncCartState = (payload: unknown) => {
     const data = payload as { items?: CartItem[] } | undefined;
