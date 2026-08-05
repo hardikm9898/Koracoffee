@@ -171,8 +171,22 @@ might be relied upon elsewhere.
     ("Priority tasks", "Segment notes", "Activity feed" panels are static).
 30. **Customer edit/delete UI doesn't exist** despite full API support
     (`updateUser`/`deleteUser`/`getUserById` defined but never called).
-31. **Order list has no server-side pagination** — fetches every order,
-    filters/sorts client-side; won't scale.
+31. ~~**Order list has no server-side pagination**~~ **RESOLVED.**
+    `orderController.listOrders` now supports `page`/`limit` (default 25,
+    capped at 100) plus a `search` query param (regex across `orderCode`,
+    `shipping.name/email/phone/address/city/zip`) — shared by both
+    `/api/orders` (self-scoped) and `/api/admin/orders` (unscoped for
+    admins). Response shape changed from a flat array to
+    `{ items, pagination, summary }` (`summary` = average order value /
+    pending / dispatch rate, computed over the full filtered set via
+    aggregate, not just the current page — so it doesn't silently change
+    meaning depending on which page you're viewing). Both frontends'
+    `getOrders()` were updated to match; the admin orders page now does
+    real server-side search/filter/pagination with Prev/Next controls
+    (matching the pattern already used on `/customers`) instead of fetching
+    every order and filtering client-side. Verified live: `limit=1` returns
+    exactly 1 item with correct pagination metadata; a non-matching search
+    returns an empty page with accurate `total:0`.
 32. **Order detail page has no 404 guard** — unlike the products detail page,
     a bad order ID likely crashes `orders/[orderId]/page.tsx`.
 33. **Refund amounts are estimated client-side**, independent of whatever the

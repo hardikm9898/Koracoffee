@@ -11,7 +11,9 @@ a required reason), and inspect order detail/fulfillment info.
 
 ## Related APIs
 
-- `GET /api/admin/orders` (fetches **all** orders — no server-side pagination/filtering)
+- `GET /api/admin/orders?page=&limit=(≤100)&status=&search=` (paginated,
+  server-side search across order code/customer name/email/phone/address —
+  returns `{items, pagination, summary}`)
 - `GET /api/admin/orders/:orderId`
 - `PATCH /api/admin/orders/:orderId` (status update, `{status, cancelReason?, refundReason?}`)
 - `POST /api/admin/orders/:orderId/advance` (linear advance — defined in the API client but **never called** from any admin page; dead code on the frontend)
@@ -38,8 +40,11 @@ None directly in this flow (stock/cart side-effects belong to order *creation*, 
 
 ## Frontend Pages
 
-- `app/orders/page.tsx` — list with client-computed metrics (avg order value,
-  pending-processing count, dispatch rate), status dropdown per row
+- `app/orders/page.tsx` — list with server-computed metrics (avg order
+  value, pending-processing count, dispatch rate — from the backend's
+  `summary`, computed over the full filtered set, not just the current
+  page), server-side search + status filter + Prev/Next pagination
+  (matching the pattern used on `/customers`), status dropdown per row
   (`Received, Roasting, Packaging, Shipped, Delivered, Cancelled, Refunded`),
   selecting Cancelled/Refunded auto-expands the row and requires a reason
   before Save is enabled. Expandable row also shows a **client-side-computed
@@ -62,9 +67,10 @@ This is the admin flow itself.
 - Status transitions via `PATCH` require `cancelReason` when setting
   `Cancelled` and `refundReason` when setting `Refunded`; otherwise mostly
   unconstrained (no forward-only guard on this endpoint — see [checkout-order-flow.md](checkout-order-flow.md)).
-- The order list has **no server-side pagination** — `getOrders()` fetches
-  every order and all search/filter/sort happens client-side via `useMemo`.
-  This will degrade as order volume grows.
+- The order list is now server-side paginated and searched (`page`/`limit`/
+  `status`/`search` query params) — verified live against real data
+  (`limit=1` returns exactly 1 item with correct pagination metadata; a
+  non-matching search returns an accurate `total:0`).
 - Refund amounts shown in the expanded row are computed **in the browser**
   (proportional discount/tax/shipping split for cancelled/refunded items),
   not fetched from the backend — could diverge from whatever real refund
@@ -90,8 +96,6 @@ front-end/admin-frontend/src/lib/admin-order-api.ts
 
 - Assuming `/orders/[orderId]` handles a missing order gracefully — it
   doesn't; add a `notFound()`/error check before building on top of it.
-- Assuming the order list's search/filter is server-driven — it's entirely
-  client-side against a full fetch of every order.
 - Assuming the displayed refund amount comes from the backend — it's a
   frontend-only estimate.
 - Trying to call `advanceOrderStatus` from the admin UI expecting it to be
@@ -99,8 +103,7 @@ front-end/admin-frontend/src/lib/admin-order-api.ts
 
 ## Future Extension Points
 
-- Add server-side pagination/filtering to `GET /api/admin/orders` (mirroring
-  how products/customers/reviews already work) before order volume grows.
+- ~~Add server-side pagination/filtering to `GET /api/admin/orders`.~~ **Done.**
 - Add a `notFound()`/error boundary to `orders/[orderId]/page.tsx`.
 - Move refund calculation to the backend so the number shown to admins is
   authoritative, not a client-side estimate.

@@ -43,13 +43,24 @@ const parseResponse = async <T>(response: Response): Promise<T> => {
   return payload.data as T;
 };
 
+type OrderListResponse = {
+  items: OrderRecord[];
+  pagination: { page: number; limit: number; total: number; totalPages: number; hasNextPage: boolean };
+};
+
+// The backend now paginates this endpoint (it's shared with the admin order
+// list, which needed real pagination to avoid fetching every order in the
+// system on every page load — see project-context/known-limitations.md).
+// A single customer's own order count is naturally small, so a single
+// generous page is enough here rather than building out pager UI.
 export async function getOrders(): Promise<OrderRecord[]> {
   const token = getAuthToken();
-  const response = await fetch(`${API_BASE_URL}/orders`, {
+  const response = await fetch(`${API_BASE_URL}/orders?limit=100`, {
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     cache: "no-store",
   });
-  return parseResponse<OrderRecord[]>(response);
+  const data = await parseResponse<OrderListResponse>(response);
+  return data.items;
 }
 
 export async function createOrder(order: {

@@ -51,6 +51,26 @@ export type AdminOrderRecord = {
   updatedAt: string;
 };
 
+export type AdminOrderPagination = {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNextPage: boolean;
+};
+
+export type AdminOrderSummary = {
+  averageOrderValue: number;
+  pendingProcessing: number;
+  dispatchRate: number;
+};
+
+export type AdminOrderListResponse = {
+  items: AdminOrderRecord[];
+  pagination: AdminOrderPagination;
+  summary: AdminOrderSummary;
+};
+
 const parseResponse = async <T>(response: Response): Promise<T> => {
   const payload = await response.json();
   if (!response.ok) {
@@ -59,11 +79,23 @@ const parseResponse = async <T>(response: Response): Promise<T> => {
   return payload.data as T;
 };
 
-export async function getOrders(): Promise<AdminOrderRecord[]> {
-  const response = await adminFetch(`/admin/orders`, {
+export async function getOrders(params: {
+  page?: number;
+  limit?: number;
+  status?: string;
+  search?: string;
+} = {}): Promise<AdminOrderListResponse> {
+  const query = new URLSearchParams();
+  if (params.page) query.set("page", String(params.page));
+  if (params.limit) query.set("limit", String(params.limit));
+  if (params.status) query.set("status", params.status);
+  if (params.search) query.set("search", params.search);
+
+  const queryString = query.toString();
+  const response = await adminFetch(`/admin/orders${queryString ? `?${queryString}` : ""}`, {
     cache: "no-store",
   });
-  return parseResponse<AdminOrderRecord[]>(response);
+  return parseResponse<AdminOrderListResponse>(response);
 }
 
 export async function updateOrderStatus(

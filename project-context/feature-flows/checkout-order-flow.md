@@ -13,7 +13,8 @@ fulfillment.
 ## Related APIs
 
 - `POST /api/orders` (create, `protect` required, stamps `Order.user`)
-- `GET /api/orders`, `GET /api/orders/:orderId` (`protect` required — scoped to `req.user` unless admin)
+- `GET /api/orders?page=&limit=(≤100)&status=&search=` (`protect` required — scoped to `req.user` unless admin; paginated, returns `{items, pagination, summary}`)
+- `GET /api/orders/:orderId` (`protect` required — scoped to `req.user` unless admin)
 - `PATCH /api/orders/:orderId`, `POST /api/orders/:orderId/advance` — **admin-only**, reachable only via `/api/admin/orders`, not this router
 - `GET/POST/PATCH/DELETE /api/users/me/addresses*` (address management during checkout)
 

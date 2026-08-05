@@ -424,6 +424,10 @@ const getNextStatus = (status) => {
 
 const listOrders = asyncHandler(async (req, res) => {
   const status = req.query.status ? String(req.query.status).trim() : undefined;
+  const search = req.query.search ? String(req.query.search).trim() : "";
+  const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+  const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 25, 1), 100);
+  const skip = (page - 1) * limit;
 
   const filter = {};
   if (status && VALID_STATUSES.includes(status)) {
@@ -436,11 +440,61 @@ const listOrders = asyncHandler(async (req, res) => {
     filter.user = req.user._id;
   }
 
-  const orders = await Order.find(filter).sort({ createdAt: -1 });
+  if (search) {
+    const regex = { $regex: search, $options: "i" };
+    filter.$or = [
+      { orderCode: regex },
+      { "shipping.name": regex },
+      { "shipping.email": regex },
+      { "shipping.phone": regex },
+      { "shipping.address": regex },
+      { "shipping.city": regex },
+      { "shipping.zip": regex },
+    ];
+  }
+
+  const [orders, total, summaryResult] = await Promise.all([
+    Order.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+    Order.countDocuments(filter),
+    // Summary metrics (avg order value, pending, dispatch rate) are computed
+    // over the full filtered set, not just the current page — otherwise
+    // they'd silently change meaning depending on which page you're on.
+    Order.aggregate([
+      { $match: filter },
+      {
+        $group: {
+          _id: null,
+          count: { $sum: 1 },
+          totalValue: { $sum: "$total" },
+          pending: { $sum: { $cond: [{ $ne: ["$status", "Delivered"] }, 1, 0] } },
+          dispatched: {
+            $sum: { $cond: [{ $in: ["$status", ["Shipped", "Delivered"]] }, 1, 0] },
+          },
+        },
+      },
+    ]),
+  ]);
+
+  const summaryData = summaryResult[0] || { count: 0, totalValue: 0, pending: 0, dispatched: 0 };
+  const summary = {
+    averageOrderValue: summaryData.count > 0 ? summaryData.totalValue / summaryData.count : 0,
+    pendingProcessing: summaryData.pending,
+    dispatchRate: summaryData.count > 0 ? Math.round((summaryData.dispatched / summaryData.count) * 100) : 0,
+  };
 
   res.status(200).json({
     success: true,
-    data: orders.map(serializeOrder),
+    data: {
+      items: orders.map(serializeOrder),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(Math.ceil(total / limit), 1),
+        hasNextPage: page * limit < total,
+      },
+      summary,
+    },
   });
 });
 

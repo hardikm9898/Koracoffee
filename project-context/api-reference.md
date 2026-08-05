@@ -73,9 +73,9 @@ Status mutation is **not** exposed on this router at all — only via
 
 | Method | Path | Auth | Notes |
 |---|---|---|---|
-| GET | `/` | user | own orders only (all orders if caller is admin) |
+| GET | `/?page=&limit=(≤100)&status=&search=` | user | paginated; own orders only (all orders if caller is admin); returns `{items, pagination, summary}` |
 | GET | `/:orderId` | user | own order only (any order if caller is admin) |
-| POST | `/` | user | creates order (stamps `Order.user = req.user._id`), decrements stock, clears ordered items from cart |
+| POST | `/` | user | creates order (stamps `Order.user = req.user._id`), atomically reserves stock per item, clears ordered items from cart |
 
 ## Reviews — `/api/reviews` (`reviewRoutes.js` → `reviewController.js`)
 
@@ -116,11 +116,12 @@ Same CRUD shape as public categories, plus `POST /upload-image` (`adminCategoryU
 
 ## Admin Orders — `/api/admin/orders` (all `admin` auth)
 
-Reuses `orderController`'s `listOrders`, `getOrderById` (unscoped here, since
-`req.userIsAdmin` is true), plus `updateOrderStatus` (PATCH) and
-`advanceOrderStatus` (POST `:orderId/advance`) — **these two status-mutation
-endpoints are only reachable through this admin router**, not the public
-`/api/orders` router.
+Reuses `orderController`'s `listOrders` (`GET /?page=&limit=&status=&search=`,
+unscoped here since `req.userIsAdmin` is true — returns every matching
+order, not just the caller's own), `getOrderById` (also unscoped), plus
+`updateOrderStatus` (PATCH) and `advanceOrderStatus` (POST
+`:orderId/advance`) — **these two status-mutation endpoints are only
+reachable through this admin router**, not the public `/api/orders` router.
 
 ## Admin Reviews — `/api/admin/reviews` (all `admin` auth)
 

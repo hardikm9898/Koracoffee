@@ -1,9 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import AdminTopbar from "@/components/admin/AdminTopbar";
-import { getOrders, updateOrderStatus, type AdminOrderRecord } from "@/lib/admin-order-api";
+import {
+  getOrders,
+  updateOrderStatus,
+  type AdminOrderRecord,
+  type AdminOrderPagination,
+  type AdminOrderSummary,
+} from "@/lib/admin-order-api";
+import { cn } from "@/lib/utils";
 
 const ORDER_STATUSES = [
   "Received",
@@ -31,8 +38,25 @@ type OrderUpdateState = {
   refundReason: string;
 };
 
+const DEFAULT_PAGINATION: AdminOrderPagination = {
+  page: 1,
+  limit: 25,
+  total: 0,
+  totalPages: 1,
+  hasNextPage: false,
+};
+
+const DEFAULT_SUMMARY: AdminOrderSummary = {
+  averageOrderValue: 0,
+  pendingProcessing: 0,
+  dispatchRate: 0,
+};
+
 export default function OrdersPage() {
-  const [orders, setOrders] = useState<AdminOrderRecord[]>([]);
+  const [items, setItems] = useState<AdminOrderRecord[]>([]);
+  const [pagination, setPagination] = useState<AdminOrderPagination>(DEFAULT_PAGINATION);
+  const [summary, setSummary] = useState<AdminOrderSummary>(DEFAULT_SUMMARY);
+  const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
@@ -47,9 +71,16 @@ export default function OrdersPage() {
     const loadOrders = async () => {
       try {
         setIsLoading(true);
-        const data = await getOrders();
+        const response = await getOrders({
+          page,
+          limit: DEFAULT_PAGINATION.limit,
+          status: statusFilter || undefined,
+          search: search.trim() || undefined,
+        });
         if (!ignore) {
-          setOrders(data);
+          setItems(response.items);
+          setPagination(response.pagination);
+          setSummary(response.summary);
         }
       } catch (err) {
         if (!ignore) {
@@ -66,61 +97,13 @@ export default function OrdersPage() {
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [page, search, statusFilter]);
 
-  const filteredOrders = useMemo(() => {
-    const query = search.trim().toLowerCase();
-
-    return orders
-      .filter((order) => {
-        if (statusFilter && order.status !== statusFilter) {
-          return false;
-        }
-
-        if (!query) {
-          return true;
-        }
-
-        const combined = [
-          order.orderCode,
-          order.shipping.name,
-          order.shipping.email,
-          order.shipping.phone,
-          order.shipping.address,
-          order.shipping.city,
-          order.shipping.zip,
-          order.status,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-
-        return combined.includes(query);
-      })
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [orders, search, statusFilter]);
-
-  const metrics = useMemo(() => {
-    if (!orders.length) {
-      return [
-        { label: "Average order value", value: "₹0.00" },
-        { label: "Pending processing", value: "0" },
-        { label: "Dispatch rate", value: "0%" },
-      ];
-    }
-
-    const average = orders.reduce((sum, order) => sum + order.total, 0) / orders.length;
-    const pending = orders.filter((order) => order.status !== "Delivered").length;
-    const dispatchRate = Math.round(
-      (orders.filter((order) => order.status === "Shipped" || order.status === "Delivered").length / orders.length) * 100,
-    );
-
-    return [
-      { label: "Average order value", value: `₹${average.toFixed(2)}` },
-      { label: "Pending processing", value: String(pending) },
-      { label: "Dispatch rate", value: `${dispatchRate}%` },
-    ];
-  }, [orders]);
+  const metrics = [
+    { label: "Average order value", value: `₹${summary.averageOrderValue.toFixed(2)}` },
+    { label: "Pending processing", value: String(summary.pendingProcessing) },
+    { label: "Dispatch rate", value: `${summary.dispatchRate}%` },
+  ];
 
   const getOrderUpdate = (order: AdminOrderRecord): OrderUpdateState => {
     return orderUpdates[order.id] ?? {
@@ -181,7 +164,7 @@ export default function OrdersPage() {
       }
 
       const updated = await updateOrderStatus(order.id, update.status, payload);
-      setOrders((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+      setItems((current) => current.map((item) => (item.id === updated.id ? updated : item)));
       setOrderUpdates((current) => ({
         ...current,
         [order.id]: {
@@ -253,7 +236,10 @@ export default function OrdersPage() {
         description="Review orders, track fulfillment, and update status with reason validation for cancellations and refunds."
         badge="Fulfillment desk"
         searchValue={search}
-        onSearch={setSearch}
+        onSearch={(value) => {
+          setSearch(value);
+          setPage(1);
+        }}
         searchPlaceholder="Search order code, customer, phone or address"
       />
 
@@ -270,14 +256,19 @@ export default function OrdersPage() {
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h2 className="text-xl font-semibold text-slate-900">Orders</h2>
-            <p className="mt-2 text-sm text-slate-500">Use the table to search, filter, and update order workflow in a single view.</p>
+            <p className="mt-2 text-sm text-slate-500">
+              {pagination.total.toLocaleString()} order{pagination.total === 1 ? "" : "s"} match the current filters.
+            </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <label className="flex items-center gap-3 text-sm text-slate-700">
               <span>Status:</span>
               <select
                 value={statusFilter}
-                onChange={(event) => setStatusFilter(event.target.value)}
+                onChange={(event) => {
+                  setStatusFilter(event.target.value);
+                  setPage(1);
+                }}
                 className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none transition focus:border-emerald-900 focus:ring-4 focus:ring-emerald-100"
               >
                 <option value="">All statuses</option>
@@ -288,6 +279,37 @@ export default function OrdersPage() {
                 ))}
               </select>
             </label>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={isLoading || page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className={cn(
+                  "rounded-full px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] transition",
+                  isLoading || page <= 1
+                    ? "cursor-not-allowed bg-slate-100 text-slate-400"
+                    : "border border-slate-200 bg-white text-slate-900 hover:bg-slate-50",
+                )}
+              >
+                Prev
+              </button>
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                Page {pagination.page} of {pagination.totalPages}
+              </span>
+              <button
+                type="button"
+                disabled={isLoading || !pagination.hasNextPage}
+                onClick={() => setPage((p) => p + 1)}
+                className={cn(
+                  "rounded-full px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] transition",
+                  isLoading || !pagination.hasNextPage
+                    ? "cursor-not-allowed bg-slate-100 text-slate-400"
+                    : "border border-slate-200 bg-white text-slate-900 hover:bg-slate-50",
+                )}
+              >
+                Next
+              </button>
+            </div>
           </div>
         </div>
 
@@ -316,14 +338,14 @@ export default function OrdersPage() {
                     Loading orders...
                   </td>
                 </tr>
-              ) : filteredOrders.length === 0 ? (
+              ) : items.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-500">
                     No orders match the filter. Try a different search or clear the status filter.
                   </td>
                 </tr>
               ) : (
-                filteredOrders.map((order) => {
+                items.map((order) => {
                   const update = getOrderUpdate(order);
                   const reasonRequired = update.status === "Cancelled" || update.status === "Refunded";
                   const reasonValue = update.status === "Cancelled" ? update.cancelReason : update.refundReason;
