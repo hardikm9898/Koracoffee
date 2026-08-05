@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import AdminCard from "@/components/admin/AdminCard";
+import AdminCard, { SampleDataBadge } from "@/components/admin/AdminCard";
 import AdminTopbar from "@/components/admin/AdminTopbar";
 import { customerSegments } from "@/lib/admin-data";
 import { getUsers, type AdminUserRecord } from "@/lib/admin-user-api";
@@ -102,7 +102,7 @@ export default function CustomersPage() {
       />
 
       <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-        <AdminCard title="Key segments" eyebrow="Audience map">
+        <AdminCard title="Key segments" eyebrow="Audience map" badge={<SampleDataBadge />}>
           <div className="space-y-4">
             {customerSegments.map((segment) => (
               <div key={segment.name} className="rounded-[1.4rem] border border-black/6 bg-background p-4">

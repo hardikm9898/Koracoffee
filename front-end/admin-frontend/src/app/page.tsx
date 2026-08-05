@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import AdminCard from "@/components/admin/AdminCard";
+import AdminCard, { SampleDataBadge } from "@/components/admin/AdminCard";
 import AdminTopbar from "@/components/admin/AdminTopbar";
 import SalesOverviewCard from "@/components/admin/SalesOverviewCard";
 import RecentActivitiesCard from "@/components/admin/RecentActivitiesCard";
@@ -240,7 +240,7 @@ export default function OverviewPage() {
         </AdminCard>
 
         <div className="space-y-6">
-          <AdminCard title="Priority tasks" eyebrow="Today">
+          <AdminCard title="Priority tasks" eyebrow="Today" badge={<SampleDataBadge />}>
             <div className="space-y-3">
               {teamTasks.map((task) => (
                 <div key={task.title} className="rounded-[1.3rem] border border-black/6 bg-background p-4">
@@ -265,7 +265,7 @@ export default function OverviewPage() {
             </div>
           </AdminCard>
 
-          <AdminCard title="Segment notes" eyebrow="Customers">
+          <AdminCard title="Segment notes" eyebrow="Customers" badge={<SampleDataBadge />}>
             <div className="space-y-3">
               {customerSegments.map((segment) => (
                 <div key={segment.name} className="rounded-[1.3rem] border border-black/6 bg-background p-4">
@@ -286,7 +286,7 @@ export default function OverviewPage() {
 
       <RecentActivitiesCard />
 
-      <AdminCard title="Activity feed" eyebrow="Recent signals">
+      <AdminCard title="Activity feed" eyebrow="Recent signals" badge={<SampleDataBadge />}>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {activityFeed.map((item) => (
             <div key={item.title} className="rounded-[1.4rem] border border-black/6 bg-background p-4">

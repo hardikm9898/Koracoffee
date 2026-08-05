@@ -41,11 +41,14 @@ See [coding-patterns.md](coding-patterns.md).
 ## Notable gaps / risks
 
 - **Settings page (`/settings`) is entirely static** — no backend integration,
-  no interactive controls, cannot actually change anything.
-- **Dashboard mixes real and fake data with no visual distinction**: stats/
-  revenue/channels/fulfillment-queue are real API calls, but "Priority tasks",
-  "Segment notes", and "Activity feed" panels are hardcoded arrays in
-  `lib/admin-data.ts` styled identically to live panels.
+  no interactive controls, cannot actually change anything. Now shows an
+  explicit "preview" notice so this isn't mistaken for working.
+- **Dashboard mixed real and fake data with no visual distinction** — fixed:
+  "Priority tasks", "Segment notes", and "Activity feed" (plus "Key
+  segments" on `/customers`) now carry an amber "Sample data" badge
+  (`AdminCard`'s new `badge` prop + exported `SampleDataBadge`). The
+  underlying data (`lib/admin-data.ts`) is still hardcoded — only the
+  labeling changed.
 - ~~Customer edit/delete UI doesn't exist~~ **Fixed** — see [known-limitations.md](known-limitations.md) #30.
 - ~~Order list has no server-side pagination~~ **Fixed** — real server-side pagination/search/status-filter now, see [known-limitations.md](known-limitations.md) #31.
 - **Order detail page has no 404 guard** (`orders/[orderId]/page.tsx`) unlike

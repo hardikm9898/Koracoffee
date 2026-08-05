@@ -219,9 +219,23 @@ might be relied upon elsewhere.
 
 ## Frontend — admin app
 
-28. **Settings page is entirely static/non-functional.**
-29. **Dashboard mixes real and hardcoded data with no visual distinction**
-    ("Priority tasks", "Segment notes", "Activity feed" panels are static).
+28. **Settings page is entirely static/non-functional.** Now has an
+    explicit "preview, not yet functional" notice banner (see #29) so it
+    isn't mistaken for real, working settings — the underlying gap
+    (no backend integration at all) is unchanged.
+29. ~~**Dashboard mixes real and hardcoded data with no visual distinction**~~
+    **PARTIALLY RESOLVED.** `AdminCard.tsx` now accepts a `badge` prop; a
+    new exported `SampleDataBadge` ("Sample data", amber pill) is applied
+    to "Priority tasks", "Segment notes", and the hardcoded "Activity feed"
+    panel on the dashboard, and to "Key segments" on `/customers` (same
+    underlying `customerSegments` array). The data itself is still
+    hardcoded — this only fixes "can an admin tell which panels are real,"
+    not "make the fake ones real." Making the data itself real is still
+    open — see the "Future Extension Points" sections of
+    [admin-dashboard-analytics-flow.md](feature-flows/admin-dashboard-analytics-flow.md)
+    and [admin-customer-management-flow.md](feature-flows/admin-customer-management-flow.md).
+    Also added a static "preview, not yet functional" notice banner to the
+    `/settings` page (item #28) for the same honesty reason.
 30. ~~**Customer edit/delete UI doesn't exist**~~ **RESOLVED.** An "Account"
     card was added to `customers/[userId]/page.tsx` — inline edit
     (name/phone/verified) and a delete button, both wired to the
