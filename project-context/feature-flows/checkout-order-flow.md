@@ -23,7 +23,7 @@ fulfillment.
 
 ## Related Services
 
-`cartService.js` (`clearOrderedItemsFromCart`, cart lookup for the items being ordered)
+`cartService.js` (`clearOrderedItemsFromCart`, cart lookup for the items being ordered), `pricingService.js` (`resolveItemPrice` — authoritative price lookup, see Business Rules)
 
 ## Related Models
 
@@ -47,10 +47,12 @@ See [admin-order-management-flow.md](admin-order-management-flow.md) for status 
 
 ## Important Business Rules
 
-- **Order creation is server-computed but client-price-trusting**:
-  `subtotal` = sum(item price × qty) using the **client-supplied** per-item
-  price (not re-derived from `Product`); `shippingFee` fixed at `5.0`; `tax` =
-  8% of subtotal; `total` = subtotal + shipping + tax − discount.
+- **Order creation is fully server-computed**: for every item, only
+  `productId`/`variant`/`quantity` are trusted from the client —
+  `pricingService.resolveItemPrice` looks up the authoritative price (and
+  name/image) from `Product`, ignoring whatever price the client sent.
+  `subtotal` = sum(resolved price × qty); `shippingFee` fixed at `5.0`; `tax`
+  = 8% of subtotal; `total` = subtotal + shipping + tax − discount.
 - **Coupons are hardcoded server-side** in `orderController.js`: `AURA20`
   (20% off), `FREESHIP` (waives shipping), `WELCOME50` (flat ₹50 off, capped
   at order amount). No `Coupon` model. The frontend **separately** hardcodes
@@ -113,7 +115,8 @@ front-end/frontend/src/lib/user-api.ts
 
 - Integrate a real payment gateway before this can process real transactions.
 - Move coupons into a real `Coupon` model with backend-only validation.
-- Re-derive order item price from `Product`/variant data server-side.
-- Wrap order creation + stock decrement in a Mongoose transaction.
+- ~~Re-derive order item price from `Product`/variant data server-side.~~ **Done.**
+- Wrap order creation + stock decrement in a Mongoose transaction (or an
+  atomic conditional update — still open, see [known-limitations.md](../known-limitations.md) #8).
 - Add a dedicated order-confirmation route instead of an inline checkout state.
 - Add user-facing error handling for failed order submission.

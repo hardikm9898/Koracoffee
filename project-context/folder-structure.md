@@ -29,7 +29,8 @@ controllers/            authController, userController, cartController,
                          productController, categoryController, orderController,
                          reviewController, uploadController,
                          admin{Analytics,BulkProduct,Review,User}Controller
-services/                addressService, cartService, otpService, otpSender, tokenService
+services/                addressService, cartService, otpService, otpSender,
+                         pricingService, tokenService
 middlewares/             authMiddleware, errorHandler, notFound
 utils/                  ApiError, adminAuth, asyncHandler
 public/uploads/          products/, categories/, reviews/ (served at /uploads)

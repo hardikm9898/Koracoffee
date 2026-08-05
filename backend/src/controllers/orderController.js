@@ -3,6 +3,7 @@ const Product = require("../models/Product");
 const asyncHandler = require("../utils/asyncHandler");
 const ApiError = require("../utils/ApiError");
 const { findUserCart, findGuestCart } = require("../services/cartService");
+const { resolveItemPrice } = require("../services/pricingService");
 
 const normalizeSessionId = (value = "") => String(value).trim();
 
@@ -250,7 +251,7 @@ const clearOrderedItemsFromCart = async ({ userId, sessionId, items }) => {
   await cart.save();
 };
 
-const buildOrderPayload = (body = {}) => {
+const buildOrderPayload = async (body = {}) => {
   const items = Array.isArray(body.items) ? body.items : [];
   if (!items.length) {
     throw new ApiError(400, "Order must include at least one item");
@@ -273,25 +274,39 @@ const buildOrderPayload = (body = {}) => {
     }
   }
 
-  const parsedItems = items.map((item) => ({
+  // Only productId/variant/quantity are trusted from the client. price
+  // (and name/image) are always re-derived from the product catalog below —
+  // never trust a client-supplied price for an order line. See
+  // known-limitations.md #7.
+  const structuralItems = items.map((item) => ({
     productId: Number(item.productId),
-    name: String(item.name || "").trim(),
     variant: String(item.variant || "").trim(),
     quantity: Number(item.quantity),
-    price: Number(item.price),
-    image: item.image ? String(item.image).trim() : null,
   }));
 
   if (
-    parsedItems.some(
+    structuralItems.some(
       (item) =>
-        !item.productId || !item.name || item.quantity < 1 || item.price < 0,
+        !Number.isFinite(item.productId) || !item.variant || item.quantity < 1,
     )
   ) {
     throw new ApiError(
       400,
-      "Each order item must include a valid productId, name, quantity and price",
+      "Each order item must include a valid productId, variant and quantity",
     );
+  }
+
+  const parsedItems = [];
+  for (const item of structuralItems) {
+    const resolved = await resolveItemPrice(item.productId, item.variant);
+    parsedItems.push({
+      productId: item.productId,
+      name: resolved.name,
+      variant: item.variant,
+      quantity: item.quantity,
+      price: resolved.price,
+      image: resolved.image,
+    });
   }
 
   const subtotal = parsedItems.reduce(
@@ -418,7 +433,7 @@ const getOrderById = asyncHandler(async (req, res) => {
 });
 
 const createOrder = asyncHandler(async (req, res) => {
-  const payload = buildOrderPayload(req.body);
+  const payload = await buildOrderPayload(req.body);
 
   await validateOrderItemsAgainstInventory(payload.items);
 

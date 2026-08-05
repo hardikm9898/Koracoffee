@@ -28,7 +28,7 @@ Guest (`x-session-id` header) and authenticated (`Authorization` header) pairs:
 
 ## Related Services
 
-`cartService.js` (`serializeCart`, `mergeItems`, `findGuestCart`, `findUserCart`, `createGuestCart`, `createUserCart`)
+`cartService.js` (`serializeCart`, `mergeItems`, `findGuestCart`, `findUserCart`, `createGuestCart`, `createUserCart`), `pricingService.js` (`resolveItemPrice` — authoritative price lookup used by `addCartItem`)
 
 ## Related Models
 
@@ -57,8 +57,14 @@ None — there is no admin view of customer carts.
   user endpoint — not a static "am I logged in" flag.
 - `addCartItem` merges by `(productId, variant)` key: if the item already
   exists, quantity is **summed** and price/name/image/basePrice are
-  **overwritten** by the new payload — meaning the server trusts whatever
-  price the client sends on every add, it does not look up `Product.basePrice`/variant price.
+  overwritten — but with the value from `pricingService.resolveItemPrice`,
+  not the client's payload. The client only controls `productId`, `variant`,
+  and `quantity`; price/name/image sent in the request body are ignored.
+  `resolveItemPrice` reads `Product.variants[]` by label when present, else
+  falls back to the same 100g/250g/500g multiplier table the frontend uses
+  (`lib/data.ts` `VARIANTS`) applied to `basePrice`. An unrecognized variant
+  label is rejected with a `400`. `updateCartItem` only ever touched
+  quantity, so it needed no change.
 - `attachSessionCart` (called once, right after login) merges the guest cart
   into the user's cart via `cartService.mergeItems`, then **deletes** the
   guest cart document.
@@ -93,8 +99,6 @@ front-end/frontend/src/app/cart/page.tsx
 - Assuming the cart is client-side/localStorage — it's fully backend-persisted;
   every mutation is a network round-trip.
 - Assuming favorites persist across sessions/refreshes — they don't (known gap).
-- Assuming server validates cart item price against `Product` — it doesn't;
-  see [known-limitations.md](../known-limitations.md) #7.
 - Forgetting that shipping fee (₹5 flat, free above ₹50) and 8% tax are
   computed **independently and redundantly** in both `cart/page.tsx` and
   `checkout/page.tsx` — a formula change must be applied in both places.
@@ -103,6 +107,4 @@ front-end/frontend/src/app/cart/page.tsx
 
 - Persist favorites (localStorage at minimum, or a backend `Favorite`/wishlist
   collection tied to `User`) if the feature should actually work.
-- Re-derive cart item price server-side from `Product`/variant data instead of
-  trusting client-supplied price, to close the price-trust gap.
 - Centralize the shipping/tax calculation instead of duplicating it per page.

@@ -45,10 +45,17 @@ might be relied upon elsewhere.
    is kept as a fallback for orders placed **before** this field existed, and
    for genuine guest/gift orders. Orders created going forward are reliably
    linked; historical pre-migration orders still rely on the phone match.
-7. **Prices are client-trusted.** Neither `cartController` (add/update item)
-   nor `orderController.buildOrderPayload` re-derive price from
-   `Product.basePrice`/variant price server-side — only stock is validated at
-   checkout, not price. A malicious client could submit arbitrary low prices.
+7. ~~**Prices are client-trusted.**~~ **RESOLVED.** New `services/pricingService.js`
+   (`resolveItemPrice(productId, variant)`) is the single source of truth for
+   price: it looks up `Product.variants[]` by label (using `discountPrice`
+   when set), or — for products with no `variants[]` defined (true of every
+   seeded product) — falls back to the same 100g/250g/500g multiplier table
+   the frontend uses (`lib/data.ts` `VARIANTS`), applied to `basePrice`.
+   `cartController.addCartItem` and `orderController.buildOrderPayload` both
+   call this and **ignore** any price/name/image the client sent. Verified
+   live: a request with `price: 0.01` on a ₹16 product was correctly priced
+   at ₹16 in both the cart and the created order. `updateCartItem` never
+   trusted price to begin with (quantity-only), so it needed no change.
 8. **Stock decrement is not transactional.** `applyOrderInventoryChanges` runs
    as a separate step after `Order.create`, with no Mongoose session — under
    concurrent checkouts of the same low-stock variant, overselling is possible.

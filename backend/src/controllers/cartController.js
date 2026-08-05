@@ -9,6 +9,7 @@ const {
   createGuestCart,
   createUserCart,
 } = require("../services/cartService");
+const { resolveItemPrice } = require("../services/pricingService");
 
 const normalizeSessionId = (value = "") => String(value).trim();
 
@@ -20,31 +21,18 @@ const extractSessionIdFromReq = (req) =>
       "",
   );
 
+// Only structural fields are trusted from the client. Price, name, and
+// image are always re-derived server-side via resolveItemPrice() — never
+// trust a client-supplied price for a cart item. See known-limitations.md #7.
 const normalizeItemPayload = (item = {}) => {
   const normalized = {
     productId: Number(item.id),
-    name: String(item.name || "").trim(),
-    basePrice: Number(item.basePrice),
-    price: Number(item.price),
     quantity: Number(item.quantity),
     variant: String(item.variant || "").trim(),
-    image: item.image ? String(item.image) : null,
   };
 
   if (!Number.isFinite(normalized.productId)) {
     throw new ApiError(400, "Product id is required");
-  }
-
-  if (!normalized.name) {
-    throw new ApiError(400, "Product name is required");
-  }
-
-  if (!Number.isFinite(normalized.basePrice) || normalized.basePrice < 0) {
-    throw new ApiError(400, "Base price must be a valid number");
-  }
-
-  if (!Number.isFinite(normalized.price) || normalized.price < 0) {
-    throw new ApiError(400, "Price must be a valid number");
   }
 
   if (!Number.isFinite(normalized.quantity) || normalized.quantity < 1) {
@@ -85,6 +73,10 @@ const addCartItem = asyncHandler(async (req, res) => {
   const sessionId = extractSessionIdFromReq(req);
   const userId = req.user?._id;
   const incomingItem = normalizeItemPayload(req.body.item);
+  const resolved = await resolveItemPrice(
+    incomingItem.productId,
+    incomingItem.variant,
+  );
   const cart = await getOrCreateCart({ userId, sessionId });
 
   const existingIndex = cart.items.findIndex(
@@ -95,12 +87,20 @@ const addCartItem = asyncHandler(async (req, res) => {
 
   if (existingIndex >= 0) {
     cart.items[existingIndex].quantity += incomingItem.quantity;
-    cart.items[existingIndex].price = incomingItem.price;
-    cart.items[existingIndex].basePrice = incomingItem.basePrice;
-    cart.items[existingIndex].name = incomingItem.name;
-    cart.items[existingIndex].image = incomingItem.image;
+    cart.items[existingIndex].price = resolved.price;
+    cart.items[existingIndex].basePrice = resolved.price;
+    cart.items[existingIndex].name = resolved.name;
+    cart.items[existingIndex].image = resolved.image;
   } else {
-    cart.items.push(incomingItem);
+    cart.items.push({
+      productId: incomingItem.productId,
+      variant: incomingItem.variant,
+      quantity: incomingItem.quantity,
+      price: resolved.price,
+      basePrice: resolved.price,
+      name: resolved.name,
+      image: resolved.image,
+    });
   }
 
   await cart.save();

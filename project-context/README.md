@@ -86,8 +86,10 @@ DB tables, business rules, dependencies, files involved, common mistakes, extens
   [known-limitations.md](known-limitations.md) and [api-reference.md](api-reference.md).
 - **Admin status is not a DB field** — it's computed per-request from a
   `ADMIN_PHONE_NUMBERS` env allowlist. See [authentication.md](authentication.md).
-- **Prices are client-trusted** in both cart and order creation; the server
-  never re-derives price from `Product`/variant data. See [checkout-order-flow.md](feature-flows/checkout-order-flow.md).
+- ~~**Prices are client-trusted**~~ **FIXED** (2026-08-05): a new
+  `services/pricingService.js` re-derives price server-side for every cart
+  add and order line — client-supplied price/name/image are ignored. See
+  [checkout-order-flow.md](feature-flows/checkout-order-flow.md).
 - **Several admin analytics endpoints are broken** (status-enum casing bugs,
   a non-existent `Order.userId` field, hardcoded/mocked data). See
   [admin-dashboard-analytics-flow.md](feature-flows/admin-dashboard-analytics-flow.md).

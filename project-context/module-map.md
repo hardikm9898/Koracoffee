@@ -11,8 +11,8 @@ lists see [database.md](database.md); for full routes see [api-reference.md](api
 | Users/Addresses | `User`, `Address` | `addressService` | `userController` | `userRoutes` | `adminUserController` reads `User`+`Address`+`Order` directly |
 | Products | `Product`, `Category`, `Review` (rating agg) | — | `productController` | `productRoutes` | `adminProductRoutes` (reuses `productController`) |
 | Categories | `Category` | — | `categoryController` | `categoryRoutes` | `adminCategoryRoutes` (reuses `categoryController`) |
-| Cart | `Cart` | `cartService` | `cartController` | `cartRoutes` | — (no admin cart view) |
-| Orders | `Order`, `Product` (stock) | `cartService` (post-order cleanup) | `orderController` | `orderRoutes` | `adminOrderRoutes` (reuses `orderController`) |
+| Cart | `Cart` | `cartService`, `pricingService` (price resolution) | `cartController` | `cartRoutes` | — (no admin cart view) |
+| Orders | `Order`, `Product` (stock) | `cartService` (post-order cleanup), `pricingService` (price resolution) | `orderController` | `orderRoutes` | `adminOrderRoutes` (reuses `orderController`) |
 | Reviews | `Review`, `Product` (existence check) | — | `reviewController` (create/list) | `reviewRoutes` | `adminReviewController` (approve/delete/list) — separate file |
 | Uploads | — | — | `uploadController` | `uploadRoutes` | `adminUploadRoutes`/`adminCategoryUploadRoutes` (reuse `uploadController`) |
 | Bulk product import | `Product`, `Category` | — | `adminBulkProductController` | — | `adminProductRoutes` (`/bulk-upload`) |
