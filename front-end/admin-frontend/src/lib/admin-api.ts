@@ -3,16 +3,11 @@ const API_BASE_URL =
 
 const buildAdminUrl = (path: string) => `${API_BASE_URL}${path}`;
 
-// Get token from localStorage as fallback for when cookies aren't sent
-function getAuthToken(): string | null {
-  if (typeof window === "undefined") return null;
-  try {
-    return localStorage.getItem("admin_token");
-  } catch {
-    return null;
-  }
-}
-
+// Auth is carried exclusively by the httpOnly admin_token cookie the backend
+// sets on login. On the client, `credentials: "include"` below is enough —
+// the browser attaches the cookie automatically. On the server (SSR), fetch
+// doesn't automatically forward the incoming request's cookies, so we copy
+// them across explicitly here.
 const withServerCookies = async (init: RequestInit = {}) => {
   const headers = new Headers(init.headers);
 
@@ -23,19 +18,6 @@ const withServerCookies = async (init: RequestInit = {}) => {
 
     if (cookie) {
       headers.set("cookie", cookie);
-    }
-  }
-
-  // Add Authorization header as fallback for cookie-based auth
-  const token = getAuthToken();
-  if (token) {
-    // Set Authorization header
-    if (!headers.has("Authorization")) {
-      headers.set("Authorization", `Bearer ${token}`);
-    }
-    // Also set custom header for middleware to check
-    if (!headers.has("x-admin-token")) {
-      headers.set("x-admin-token", token);
     }
   }
 

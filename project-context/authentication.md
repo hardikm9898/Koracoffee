@@ -34,11 +34,12 @@ cookie+bearer) and different authorization checks.
      `secure` true in production; `maxAge` 7 days).
    - **Also returns the token in the JSON body** as a documented fallback for
      cross-origin cookie issues.
-3. Admin frontend (`front-end/admin-frontend/src/lib/admin-auth.ts`) stores the
-   token in **both** `localStorage` (`admin_token`) **and** a second,
-   **non-httpOnly, JS-writable** `document.cookie` it sets itself. This
-   contradicts the login page's own UI copy, which claims the token "stays out
-   of browser storage" via an httpOnly cookie — see [known-limitations.md](known-limitations.md).
+3. Admin frontend (`front-end/admin-frontend/src/lib/admin-auth.ts`) stores
+   nothing itself — the backend's httpOnly `admin_token` cookie (already
+   captured via `credentials: "include"` on the verify-otp call) is the only
+   place the token lives, matching the login page's UI copy exactly. (This
+   used to also duplicate the token into `localStorage` and a second,
+   JS-writable cookie — removed, see [known-limitations.md](known-limitations.md).)
 4. `GET /api/auth/admin/me` (protected) returns the sanitized admin user.
 5. `POST /api/auth/admin/logout` (no auth required) clears the `admin_token`
    cookie server-side. The frontend also clears its own `localStorage` entry,
@@ -121,8 +122,9 @@ task touching those routers as a chance to flag this, not assume it's intentiona
   branching, checkout gate). These two are used inconsistently across files —
   see [state-management.md](state-management.md).
 - **Admin app**: route protection is enforced by `src/proxy.ts`, Next.js
-  middleware (despite the filename, **not** an API/CORS proxy) that checks for
-  an `admin_token` cookie (or `Authorization`/`x-admin-token` headers, which
-  in practice only matter for direct API-style requests, not page navigation)
-  and redirects to `/login` if absent, or away from `/login` if present. It
-  does not verify the token is valid/unexpired — only that it exists.
+  middleware (despite the filename, **not** an API/CORS proxy) that checks
+  for the `admin_token` cookie only (the header checks it used to also do
+  were removed — a normal page navigation never sends those headers, so they
+  never protected anything) and redirects to `/login` if absent, or away
+  from `/login` if present. It does not verify the token is valid/unexpired
+  — only that it exists.

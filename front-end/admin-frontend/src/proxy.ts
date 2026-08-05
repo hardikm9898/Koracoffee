@@ -3,26 +3,14 @@ import { NextResponse } from "next/server";
 
 const PUBLIC_PATHS = ["/login"];
 
-// Helper to check for admin token in cookies or headers
+// The httpOnly admin_token cookie is the only credential the browser ever
+// holds for this app (see lib/admin-auth.ts) — it's also the only thing a
+// page-navigation request can carry automatically, so it's the only thing
+// worth checking here. (This used to also check Authorization/x-admin-token
+// headers, which a normal browser navigation never sends — that check was
+// dead weight that looked like defense but wasn't.)
 function hasAdminToken(request: NextRequest): boolean {
-  // Check cookie first
-  if (request.cookies.get("admin_token")?.value) {
-    return true;
-  }
-
-  // Check Authorization header (for localStorage fallback via client-side header)
-  const authHeader = request.headers.get("authorization");
-  if (authHeader?.startsWith("Bearer ")) {
-    return true;
-  }
-
-  // Check custom header that client can set from localStorage
-  const xAdminToken = request.headers.get("x-admin-token");
-  if (xAdminToken) {
-    return true;
-  }
-
-  return false;
+  return Boolean(request.cookies.get("admin_token")?.value);
 }
 
 export function proxy(request: NextRequest) {

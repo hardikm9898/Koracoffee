@@ -60,36 +60,19 @@ export async function verifyAdminOtp(
     }),
   });
 
+  // The backend already set an httpOnly `admin_token` cookie on this
+  // response (credentials: "include" above ensures the browser stores it).
+  // That cookie is the *only* place the token lives — it is intentionally
+  // never read or written from JS. (This used to also duplicate the token
+  // into localStorage and a second, JS-writable cookie, which meant any XSS
+  // on this dashboard could exfiltrate the highest-privilege token in the
+  // system through two extra channels. Do not reintroduce that.)
   const payload = await parseResponse<{
     user: AdminSessionUser;
     token?: string;
   }>(response);
 
-  // If token is returned in response body (fallback for cross-origin cookie issues),
-  // store it in localStorage as backup AND set a cookie for server-side access
-  if (payload.token) {
-    try {
-      localStorage.setItem("admin_token", payload.token);
-
-      // Also set a cookie so the server-side proxy can read it
-      // This cookie is accessible to the server for authentication checks
-      document.cookie = `admin_token=${payload.token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
-    } catch {
-      // localStorage might be unavailable (private browsing, etc.)
-    }
-  }
-
   return payload.user;
-}
-
-// Helper function to get stored admin token
-export function getStoredAdminToken(): string | null {
-  if (typeof window === "undefined") return null;
-  try {
-    return localStorage.getItem("admin_token");
-  } catch {
-    return null;
-  }
 }
 
 export async function logoutAdmin(): Promise<void> {
@@ -99,13 +82,8 @@ export async function logoutAdmin(): Promise<void> {
   });
 
   await parseResponse(response);
-
-  // Clear localStorage token as well
-  try {
-    localStorage.removeItem("admin_token");
-  } catch {
-    // Ignore errors
-  }
+  // Backend clears the httpOnly admin_token cookie via Set-Cookie on this
+  // response — nothing for the client to clean up locally anymore.
 }
 
 export async function getCurrentAdmin(): Promise<AdminSessionUser> {

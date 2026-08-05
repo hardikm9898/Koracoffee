@@ -27,11 +27,10 @@ which renders either a centered login layout (`/login`) or sidebar+main layout
 
 ## Auth
 
-Phone+OTP (own admin-only endpoints, allowlist-gated). Token stored in
-**both** `localStorage` and a **non-httpOnly** cookie set by client JS — this
-contradicts the login page's own copy claiming httpOnly-cookie-only storage.
-Route protection is `src/proxy.ts` middleware checking for the `admin_token`
-cookie. See [authentication.md](authentication.md).
+Phone+OTP (own admin-only endpoints, allowlist-gated). Token lives only in
+the backend's httpOnly `admin_token` cookie, matching the login page's copy.
+Route protection is `src/proxy.ts` middleware checking for that cookie. See
+[authentication.md](authentication.md).
 
 ## API client pattern
 

@@ -57,18 +57,17 @@ above. Shop filter/sort/search state is **not** synced to the URL except the
 
 ### Auth state (`lib/admin-auth.ts`)
 
-- **Storage**: `localStorage` key `admin_token`, **plus** a second,
-  non-httpOnly cookie the client sets itself via `document.cookie` (`admin_token`,
-  `SameSite=Lax`, 7-day max-age) — in addition to the httpOnly cookie the
-  *backend* also sets on login. So up to two `admin_token` values can exist
-  (server httpOnly cookie + client-readable cookie), plus localStorage.
+- **Storage**: the httpOnly `admin_token` cookie the backend sets on login —
+  and only that. (This used to also duplicate the token into `localStorage`
+  and a second, JS-writable cookie set from client JS; both were removed —
+  see [known-limitations.md](known-limitations.md).)
 - `lib/admin-api.ts`'s `adminFetch()` wrapper: on the server (SSR), forwards
-  the incoming request's `cookie` header via `next/headers`; on the client,
-  reads `localStorage` and sets both `Authorization: Bearer` and a custom
-  `x-admin-token` header, plus always `credentials: "include"`.
+  the incoming request's `cookie` header via `next/headers` (fetch doesn't do
+  this automatically); on the client, `credentials: "include"` is enough —
+  the browser attaches the httpOnly cookie automatically.
 - Route-level gating is **not** component state — it's `src/proxy.ts`
-  (Next.js middleware), which only checks for cookie/header *presence*, not
-  validity. See [routing.md](routing.md).
+  (Next.js middleware), which only checks for the `admin_token` cookie's
+  *presence*, not validity. See [routing.md](routing.md).
 - No global "current admin" state/context — `AdminSessionUser` data isn't
   stored anywhere accessible after login (the sidebar shows a hardcoded
   placeholder name instead of the real logged-in admin).

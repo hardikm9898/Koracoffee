@@ -24,6 +24,9 @@ pnpm-debug.log*
 **/.turbo/
 **/.parcel-cache/
 
+# Ignore TypeScript incremental build info
+**/*.tsbuildinfo
+
 # Ignore package manager artifacts
 .pnp
 .pnp.js

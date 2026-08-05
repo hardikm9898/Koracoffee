@@ -30,10 +30,17 @@ might be relied upon elsewhere.
    `NODE_ENV=production` until one is** — auth will hard-fail otherwise
    (intentional: fail loud, not silently insecure). `.env.example` now
    documents this in all three apps.
-5. **Admin token storage contradicts its own UI copy.** `admin-frontend`'s
-   login page claims the token is "stored in an HTTP-only server cookie" but
-   the code also stores it in `localStorage` and a second, non-httpOnly,
-   JS-writable cookie — both readable by any injected script (XSS risk).
+5. ~~**Admin token storage contradicts its own UI copy.**~~ **RESOLVED.**
+   `lib/admin-auth.ts` no longer writes the token to `localStorage` or a
+   JS-writable cookie — the backend's httpOnly `admin_token` cookie (already
+   set via `credentials: "include"`) is now the only place the token lives,
+   matching what the login page's copy always claimed. `lib/admin-api.ts`'s
+   `adminFetch` no longer attaches `Authorization`/`x-admin-token` headers
+   from localStorage (there's nothing there to read anymore); it still
+   forwards cookies on SSR requests, which was already correct.
+   `proxy.ts`'s `hasAdminToken` now only checks the cookie — the header
+   checks it used to do were never reachable for a real page navigation
+   anyway, so removing them doesn't weaken anything (see [authentication.md](../authentication.md)).
 
 ## Data integrity / correctness
 
