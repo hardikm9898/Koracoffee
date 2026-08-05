@@ -45,22 +45,28 @@ cookie+bearer) and different authorization checks.
    but does not explicitly clear the client-set cookie — relies on the
    backend's `Set-Cookie` clearing it.
 
-## OTP mechanics — **not production-ready as-is**
+## OTP mechanics
 
 `services/otpService.js`:
-- `generateOtp()` — nominally a random 6-digit string.
-- `generateAdminOtp()` — **hardcoded, always returns `"111111"`**.
-- **Module-level override**: `if (process.env.NODE_ENV !== "production") { generateOtp = () => "111111" }`.
-  Since `NODE_ENV` is not set in `.env`, this override is active by default —
-  regular user OTP is *also* fixed to `"111111"` unless `NODE_ENV=production`
-  is explicitly set in the deploy environment.
-- **No SMS/email delivery integration exists anywhere.** The OTP is only ever
-  returned in the API response body (dev convenience) or logged; there is no
-  actual "send" step. The frontend even renders the returned OTP directly in
-  the login UI as "Development OTP".
-
-Treat this as a known gap, not a feature to preserve, if a task involves
-hardening auth for production.
+- `generateOtp()` and `generateAdminOtp()` are now the **same** random
+  6-digit generator (`crypto.randomInt(100000, 1000000)`). Neither is ever
+  fixed/predictable — the previous hardcoded `"111111"` admin OTP has been removed.
+- `services/otpSender.js` is a new delivery abstraction called from
+  `authController.requestOtp`/`requestAdminOtp` right after the OTP is
+  generated and persisted:
+  - Non-production (`NODE_ENV !== "production"`): logs `[otp:dev] OTP for <phone>: <otp>`
+    to the server console (dev convenience — no real provider needed locally).
+  - Production (`NODE_ENV === "production"`): **throws** unless a real
+    SMS/WhatsApp provider has been wired into that file — this fails the
+    OTP request loudly rather than silently pretending delivery succeeded.
+  - **No real provider is integrated yet.** Do not set `NODE_ENV=production`
+    in a deploy until one is added, or login will hard-fail for everyone.
+- The API response still additionally echoes `otp` in the JSON body when
+  `NODE_ENV !== "production"` (unchanged dev convenience, separate from the
+  console log above) — the admin/customer login pages render this as
+  "Development OTP". This will stop happening automatically once
+  `NODE_ENV=production` is set.
+- `.env.example` (backend) documents all of this.
 
 ## Token verification (`middlewares/authMiddleware.js`)
 

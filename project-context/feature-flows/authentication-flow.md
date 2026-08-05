@@ -60,9 +60,9 @@ Full request/response shapes: [api-reference.md](../api-reference.md).
   editing the env var takes effect immediately, even for already-issued tokens.
 - Customer JWT: bearer-only, returned in body, no cookie.
 - Admin JWT: returned in body **and** set as an httpOnly cookie (`admin_token`).
-- OTP is effectively fixed to `"111111"` outside `NODE_ENV=production` for
-  both flows, and always fixed for admin regardless of environment. There is
-  no SMS/email delivery mechanism at all — see [authentication.md](../authentication.md).
+- OTP is always randomly generated now (no more fixed `"111111"`). There is
+  still no real SMS/email delivery provider wired in — `services/otpSender.js`
+  intentionally throws in production until one is added. See [authentication.md](../authentication.md).
 
 ## Dependencies
 
@@ -95,12 +95,14 @@ front-end/admin-frontend/src/proxy.ts
 - Assuming the admin app's `admin_token` cookie is httpOnly and JS-inaccessible
   — the frontend itself also sets a JS-writable cookie of the same name; both
   the backend's httpOnly cookie and the frontend's own cookie can be in play.
-- Assuming OTP is randomly generated in dev/staging — it's hardcoded to `"111111"`.
+- Assuming OTP delivery works in production — it doesn't yet;
+  `otpSender.js` throws until a real provider is configured there.
 
 ## Future Extension Points
 
 - Add a real `isAdmin`/`role` field to `User` if admin permissions need to
   become granular (currently binary, env-config-driven).
-- Add real OTP delivery (SMS/email provider) before any production launch.
+- Wire a real SMS/WhatsApp provider into `services/otpSender.js` before any
+  production launch — this is the one remaining blocker in this flow.
 - Add refresh tokens / token revocation if session lifetime needs to be
   managed beyond the JWT's fixed expiry.

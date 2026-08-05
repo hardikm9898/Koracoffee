@@ -29,13 +29,17 @@ controllers/            authController, userController, cartController,
                          productController, categoryController, orderController,
                          reviewController, uploadController,
                          admin{Analytics,BulkProduct,Review,User}Controller
-services/                addressService, cartService, otpService, tokenService
+services/                addressService, cartService, otpService, otpSender, tokenService
 middlewares/             authMiddleware, errorHandler, notFound
 utils/                  ApiError, adminAuth, asyncHandler
 public/uploads/          products/, categories/, reviews/ (served at /uploads)
 data/productSeed.js      24 hardcoded coffee products
 seeders/seedProducts.js  wipes + reseeds Product/Category
-.env                     MONGODB_URI, JWT_SECRET, ADMIN_PHONE_NUMBERS
+.env                     local secrets (gitignored)
+.env.example             documents every env var (MONGODB_URI, JWT_SECRET,
+                         JWT_EXPIRES_IN, ADMIN_PHONE_NUMBERS, PORT, NODE_ENV,
+                         CLIENT_URL, CLIENT_URLS, OTP_EXPIRY_MINUTES,
+                         ADMIN_COOKIE_SAME_SITE, ADMIN_COOKIE_DOMAIN)
 ```
 
 Admin-prefixed route/controller files (`admin*`) generally **reuse** the

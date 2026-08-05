@@ -10,8 +10,9 @@ Path: `front-end/frontend/` · Next.js 16.1.6 (App Router) · React 19.2.3 · Ty
 - **Backend calls**: plain `fetch()`, no axios/SWR/React Query. Base URL:
   `process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api"` —
   this exact line is duplicated independently in 7 files (no shared API client
-  module). **No `.env` file exists in the repo** — production deploys must set
-  `NEXT_PUBLIC_API_BASE_URL` externally or the app silently targets localhost.
+  module). `.env.example` documents `NEXT_PUBLIC_API_BASE_URL`; no real `.env`
+  is committed (expected) — production deploys must still set it explicitly
+  or the app silently targets localhost.
 - Images: `next/image` with `remotePatterns` for `images.unsplash.com`,
   `localhost:5000`, `127.0.0.1:5000`; several places use raw `<img>` instead
   (banner slider, review images) inconsistently.

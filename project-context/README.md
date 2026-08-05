@@ -74,9 +74,11 @@ DB tables, business rules, dependencies, files involved, common mistakes, extens
 
 - **No payment gateway is integrated.** Checkout's "Payment" step is a visual
   mockup only. See [checkout-order-flow.md](feature-flows/checkout-order-flow.md).
-- **OTP is not random in non-production environments** — it's hardcoded to
-  `"111111"` for both admin and (when `NODE_ENV !== "production"`) regular users.
-  See [authentication.md](authentication.md).
+- ~~**OTP is not random in non-production environments**~~ **FIXED** (2026-08-05):
+  OTP generation is always random now for both admin and regular users. There
+  is still no real SMS delivery provider — `services/otpSender.js` will
+  throw if `NODE_ENV=production` is set without one configured (intentional
+  fail-loud). See [authentication.md](authentication.md).
 - ~~**Several core mutation routes are unauthenticated**~~ **FIXED** (2026-08-05):
   public product/category routers are now GET-only; order status mutation is
   admin-only via `/api/admin/orders`; the public order router requires login

@@ -13,7 +13,7 @@ customers, and reviews.
   (`lib/admin-api.ts`), which all `lib/admin-*-api.ts` modules use except
   `admin-auth.ts` (calls `fetch` directly). Base URL: `NEXT_PUBLIC_API_BASE_URL`
   or `http://localhost:5000/api` — **duplicated identically** in `admin-api.ts`
-  and `admin-auth.ts`. No `.env` file present in the repo.
+  and `admin-auth.ts`. `.env.example` documents `NEXT_PUBLIC_API_BASE_URL`; no real `.env` is committed (expected).
 - **`src/proxy.ts` is NOT a CORS/API proxy** despite the name — it's Next.js
   middleware that only does auth route-guarding (redirect to `/login` if no
   `admin_token`). The browser calls the backend directly; CORS must be

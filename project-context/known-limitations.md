@@ -20,11 +20,16 @@ might be relied upon elsewhere.
    `/api/admin/orders` (admin-only), matching how the admin UI already used it.
 3. **Public product image upload has no auth or rate limiting.**
    `POST /api/products/upload-image` — open file-upload abuse/storage-exhaustion vector.
-4. **OTP is not actually random.** `otpService.generateAdminOtp()` always
-   returns `"111111"`. `otpService.generateOtp()` is monkey-patched to also
-   always return `"111111"` whenever `NODE_ENV !== "production"` — and
-   `NODE_ENV` is unset in `.env`, so this is the default. No SMS/email
-   delivery exists anywhere; OTP is only ever returned in the API response.
+4. ~~**OTP is not actually random.**~~ **RESOLVED.** `generateAdminOtp` is now
+   the same random generator as `generateOtp` (`crypto.randomInt`, no more
+   hardcoded `"111111"` for either flow). A new `services/otpSender.js`
+   abstraction now sits between "generate" and "respond": in non-production
+   it logs the OTP server-side (dev convenience); in production it
+   **throws** unless a real provider is wired in — see the TODO in that
+   file. No real SMS/WhatsApp provider is integrated yet, so **do not set
+   `NODE_ENV=production` until one is** — auth will hard-fail otherwise
+   (intentional: fail loud, not silently insecure). `.env.example` now
+   documents this in all three apps.
 5. **Admin token storage contradicts its own UI copy.** `admin-frontend`'s
    login page claims the token is "stored in an HTTP-only server cookie" but
    the code also stores it in `localStorage` and a second, non-httpOnly,
@@ -94,8 +99,12 @@ might be relied upon elsewhere.
 24. **`/subscribe` is entirely simulated** (`setTimeout`, no backend call).
 25. **No shared API client module** — base URL + response-parsing logic is
     copy-pasted across 7 `lib/*.ts` files.
-26. **No `.env` file committed** — `NEXT_PUBLIC_API_BASE_URL` must be set
-    externally or the app silently targets `localhost:5000`.
+26. ~~**No `.env` file committed**~~ **PARTIALLY RESOLVED.** `.env.example`
+    now documents `NEXT_PUBLIC_API_BASE_URL` in both frontend apps (and a
+    full `.env.example` exists for the backend). The underlying behavior is
+    unchanged though: if the real `.env`/deploy env var is left unset, the
+    app still silently falls back to `localhost:5000` rather than failing
+    loudly — worth hardening if this causes a misconfigured-prod incident.
 27. `CoffeeQuiz.tsx` is dead code (built, never rendered).
 
 ## Frontend — admin app

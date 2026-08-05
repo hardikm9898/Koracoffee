@@ -2,6 +2,7 @@ const User = require("../models/User");
 const asyncHandler = require("../utils/asyncHandler");
 const ApiError = require("../utils/ApiError");
 const { generateOtp, generateAdminOtp, getOtpExpiryDate } = require("../services/otpService");
+const { sendOtp } = require("../services/otpSender");
 const { generateToken } = require("../services/tokenService");
 const {
   normalizePhoneNumber,
@@ -89,6 +90,8 @@ const requestOtp = asyncHandler(async (req, res) => {
     user.otpExpiresAt = otpExpiresAt;
     await user.save();
   }
+
+  await sendOtp(user.phoneNumber, otpCode);
 
   res.status(200).json({
     success: true,
@@ -191,6 +194,8 @@ const requestAdminOtp = asyncHandler(async (req, res) => {
     user.otpExpiresAt = otpExpiresAt;
     await user.save();
   }
+
+  await sendOtp(user.phoneNumber, otpCode);
 
   res.status(200).json({
     success: true,

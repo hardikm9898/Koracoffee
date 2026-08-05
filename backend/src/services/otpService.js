@@ -1,6 +1,12 @@
-const generateOtp = () => String(Math.floor(100000 + Math.random() * 900000));
+const crypto = require("crypto");
 
-const generateAdminOtp = () => "111111"; // Fixed OTP for admin login
+const generateOtp = () => String(crypto.randomInt(100000, 1000000));
+
+// Admin OTP must be generated exactly like regular-user OTP. This used to
+// return a hardcoded "111111" for every admin login — effectively a fixed
+// password for the highest-privilege accounts in the system. Never
+// reintroduce a fixed/predictable value here.
+const generateAdminOtp = generateOtp;
 
 const getOtpExpiryDate = () => {
   const expiryMinutes = Number(process.env.OTP_EXPIRY_MINUTES || 10);
@@ -12,7 +18,3 @@ module.exports = {
   generateAdminOtp,
   getOtpExpiryDate,
 };
-
-if (process.env.NODE_ENV !== "production") {
-  module.exports.generateOtp = () => "111111";
-}
