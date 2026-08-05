@@ -31,7 +31,7 @@ controllers/            authController, userController, cartController,
                          admin{Analytics,BulkProduct,Review,User}Controller
 services/                addressService, cartService, otpService, otpSender,
                          pricingService, tokenService
-middlewares/             authMiddleware, errorHandler, notFound
+middlewares/             authMiddleware, errorHandler, notFound, rateLimiters
 utils/                  ApiError, adminAuth, asyncHandler
 public/uploads/          products/, categories/, reviews/ (served at /uploads)
 data/productSeed.js      24 hardcoded coffee products

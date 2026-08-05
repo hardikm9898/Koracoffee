@@ -18,8 +18,10 @@ might be relied upon elsewhere.
    `Order.user` at creation time). Status mutation (`PATCH`, `/advance`) was
    removed from the public router entirely — only reachable via
    `/api/admin/orders` (admin-only), matching how the admin UI already used it.
-3. **Public product image upload has no auth or rate limiting.**
-   `POST /api/products/upload-image` — open file-upload abuse/storage-exhaustion vector.
+3. **Public product image upload has no auth.** `POST /api/products/upload-image`
+   is still reachable with no login — an open catalog-image abuse vector.
+   It is now covered by the general rate limiter (see #41 below), which
+   caps abuse volume but does not close the auth gap itself.
 4. ~~**OTP is not actually random.**~~ **RESOLVED.** `generateAdminOtp` is now
    the same random generator as `generateOtp` (`crypto.randomInt`, no more
    hardcoded `"111111"` for either flow). A new `services/otpSender.js`
@@ -151,6 +153,17 @@ might be relied upon elsewhere.
     possible behind a reverse proxy.
 40. `authMiddleware`'s `auth_token` cookie fallback is dead code — nothing
     ever sets a cookie by that name for regular users.
+41. ~~No `helmet`, no rate limiting anywhere.~~ **RESOLVED.** `app.js` now
+    applies `helmet()` (with `crossOriginResourcePolicy: "cross-origin"` and
+    `crossOriginEmbedderPolicy: false` explicitly, since `/uploads` images
+    are consumed cross-origin by both frontends — verified live that image
+    responses still carry a `cross-origin` CORP header) and a general
+    rate limiter (`middlewares/rateLimiters.js`, 300 req/15min per IP) on
+    every `/api` route. A stricter limiter (20 req/15min) additionally
+    guards the four OTP request/verify endpoints in `authRoutes.js` — verified
+    live that the 21st rapid request to `/auth/request-otp` returns `429`.
+    This does not add auth to any route that lacked it (see #1–#3) — it only
+    bounds abuse volume against whatever *is* reachable.
 
 ## When to update this file
 

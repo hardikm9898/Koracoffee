@@ -1,7 +1,9 @@
 const express = require("express");
 const cors = require("cors");
+const helmet = require("helmet");
 const morgan = require("morgan");
 const path = require("path");
+const { apiLimiter } = require("./middlewares/rateLimiters");
 
 const authRoutes = require("./routes/authRoutes");
 const cartRoutes = require("./routes/cartRoutes");
@@ -32,6 +34,17 @@ const allowedOrigins = [
 ].filter(Boolean);
 
 app.use(
+  helmet({
+    // Product/category/review images under /uploads are served by this app
+    // but embedded by two separate Next.js frontends on different origins —
+    // helmet's default same-origin CORP would block that cross-origin <img>
+    // embedding, so it's explicitly relaxed here. crossOriginEmbedderPolicy
+    // is disabled for the same reason (no COEP requirement on this API).
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    crossOriginEmbedderPolicy: false,
+  })
+);
+app.use(
   cors({
     origin(origin, callback) {
       if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
@@ -47,6 +60,7 @@ app.use(
 app.use(express.json());
 app.use(morgan("dev"));
 app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
+app.use("/api", apiLimiter);
 
 app.get("/api/health", (_req, res) => {
   res.status(200).json({

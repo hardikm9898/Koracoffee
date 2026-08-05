@@ -7,7 +7,8 @@ Path: `backend/` · Entry: `src/server.js` · Node.js + Express 4.21.2 + Mongoos
 - **Framework**: Express 4
 - **DB**: MongoDB via Mongoose 8 (`config/db.js`, reads `MONGODB_URI`)
 - **Auth**: `jsonwebtoken` 9 (JWT, `services/tokenService.js`)
-- **Uploads**: `multer` 1.4.4 (disk storage per resource; memory storage for CSV bulk upload)
+- **Uploads**: `multer` 1.4.4 (disk storage per resource; memory storage for CSV bulk upload) — legacy 1.x line, worth upgrading eventually
+- **Security middleware**: `helmet` (with CORP relaxed to `cross-origin` so `/uploads` images stay embeddable by both frontends) and `express-rate-limit` (general 300 req/15min on all `/api`, stricter 20 req/15min on the four OTP endpoints) — see `middlewares/rateLimiters.js`
 - **Logging**: `morgan` ("dev" format only — no persistent/structured logging)
 - **CORS**: `cors`, custom origin allowlist from `CLIENT_URL`/`CLIENT_URLS` env vars
 - **No** validation library (Joi/Zod/express-validator) — all validation is hand-rolled per controller
@@ -23,14 +24,16 @@ package.json scripts: `dev` (nodemon), `start`, `seed:products` (seeds 24 hardco
 
 ## Express middleware chain (exact order, `app.js`)
 
-1. `cors()` — custom origin function, allows if no `Origin` header, no allowlist configured, or origin is in `CLIENT_URL`/`CLIENT_URLS`. `credentials: true`.
-2. `express.json()` — **no `express.urlencoded()`**, so form-encoded bodies are never parsed (only JSON and multipart via multer).
-3. `morgan("dev")`
-4. `express.static(.../public/uploads)` mounted at `/uploads`
-5. `GET /api/health`
-6. All resource routers (see [api-reference.md](api-reference.md))
-7. `notFound` middleware (404 JSON)
-8. `errorHandler` middleware (final error handler, no server-side logging of errors)
+1. `helmet()` — CORP relaxed to `cross-origin`, COEP disabled (so `/uploads` images stay loadable by both frontend origins)
+2. `cors()` — custom origin function, allows if no `Origin` header, no allowlist configured, or origin is in `CLIENT_URL`/`CLIENT_URLS`. `credentials: true`.
+3. `express.json()` — **no `express.urlencoded()`**, so form-encoded bodies are never parsed (only JSON and multipart via multer).
+4. `morgan("dev")`
+5. `express.static(.../public/uploads)` mounted at `/uploads`
+6. `apiLimiter` (general rate limit, 300 req/15min per IP) mounted on `/api`
+7. `GET /api/health`
+8. All resource routers (see [api-reference.md](api-reference.md)) — `authRoutes` additionally applies a stricter `authLimiter` (20 req/15min) to its four OTP endpoints
+9. `notFound` middleware (404 JSON)
+10. `errorHandler` middleware (final error handler, no server-side logging of errors)
 
 ## Folder layout (see [folder-structure.md](folder-structure.md) for full tree)
 
