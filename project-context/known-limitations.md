@@ -65,9 +65,28 @@ might be relied upon elsewhere.
    live: a request with `price: 0.01` on a ₹16 product was correctly priced
    at ₹16 in both the cart and the created order. `updateCartItem` never
    trusted price to begin with (quantity-only), so it needed no change.
-8. **Stock decrement is not transactional.** `applyOrderInventoryChanges` runs
-   as a separate step after `Order.create`, with no Mongoose session — under
-   concurrent checkouts of the same low-stock variant, overselling is possible.
+8. ~~**Stock decrement is not transactional.**~~ **RESOLVED — but not via
+   Mongoose transactions.** This deployment's MongoDB is a **standalone
+   instance, not a replica set** — verified live: wrapping a real write in
+   `session.withTransaction()` fails with `"Transaction numbers are only
+   allowed on a replica set member or mongos"`. (An earlier check using
+   `session.startTransaction()` around a no-op `admin().ping()` misleadingly
+   "succeeded" — that doesn't exercise a real write, so don't trust that
+   pattern to mean transactions actually work here.)
+   The real fix: `applyOrderInventoryChanges` now decrements stock via a
+   single atomic `findOneAndUpdate` per line item, whose query condition
+   (`stock >= quantity`) and `$inc` happen together as one MongoDB
+   operation — no separate "check" step exists anymore for a race to open
+   up in. Verified live: 5 concurrent order requests against a variant with
+   exactly 1 unit of stock — exactly 1 succeeded, the other 4 got a clean
+   "insufficient stock" `400`, and stock never went negative. Because
+   there's no transaction wrapping multiple documents, a multi-item order
+   failing partway through needs manual compensation: `applyOrderInventoryChanges`
+   tracks what it already decremented and rolls it back on a later item's
+   failure; `createOrder` does the same if `Order.create` itself fails after
+   stock was successfully reserved. Verified live: a 2-item order where item
+   A had stock and item B didn't correctly left item A's stock exactly
+   where it started (not permanently short).
 9. **Address data duplication.** `User.addresses` (embedded, legacy) vs.
    `Address` collection (canonical). `addressService.migrateEmbeddedAddresses`
    copies on first read but nothing ever clears the embedded array — it's

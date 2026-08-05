@@ -57,11 +57,19 @@ See [admin-order-management-flow.md](admin-order-management-flow.md) for status 
   (20% off), `FREESHIP` (waives shipping), `WELCOME50` (flat ₹50 off, capped
   at order amount). No `Coupon` model. The frontend **separately** hardcodes
   the same three codes for its own preview UI — the two lists can drift.
-- **Stock validation happens, price validation does not**: `validateOrderItemsAgainstInventory`
-  checks each ordered `(productId, variant)` against `Product.variants[].stock`;
-  products without a `variants[]` array skip stock checking entirely.
-  `applyOrderInventoryChanges` decrements stock **after** order creation, not
-  atomically — see [known-limitations.md](../known-limitations.md) #8.
+- **Stock is validated and decremented atomically, before order creation**:
+  `applyOrderInventoryChanges` runs first, one grouped `(productId, variant)`
+  line item at a time, via a single `findOneAndUpdate` whose query condition
+  (`stock >= quantity`) and `$inc` decrement happen as one atomic MongoDB
+  operation — there's no separate "check" step for a race to open up in.
+  Products without a `variants[]` array (or without stock tracked on the
+  matched variant) skip validation/decrement entirely. This deployment's
+  MongoDB is standalone (not a replica set), so multi-document transactions
+  aren't available — a multi-item order failing partway through is instead
+  handled by manual compensation: whatever was already decremented in that
+  call gets rolled back before the error propagates, and `createOrder` does
+  the same if `Order.create` itself fails after stock was reserved. See
+  [known-limitations.md](../known-limitations.md) #8 for the live verification.
 - **Order IDs**: `orderId` = max existing + 1; `orderCode` = `AURA-<year>-<orderId padded to 4>`.
 - **Order ownership**: `Order.user` is stamped from `req.user._id` at creation
   (auth is required to reach `createOrder`). `listOrders`/`getOrderById` on
@@ -116,7 +124,11 @@ front-end/frontend/src/lib/user-api.ts
 - Integrate a real payment gateway before this can process real transactions.
 - Move coupons into a real `Coupon` model with backend-only validation.
 - ~~Re-derive order item price from `Product`/variant data server-side.~~ **Done.**
-- Wrap order creation + stock decrement in a Mongoose transaction (or an
-  atomic conditional update — still open, see [known-limitations.md](../known-limitations.md) #8).
+- ~~Wrap order creation + stock decrement in a Mongoose transaction.~~ **Not
+  applicable on this deployment** (standalone MongoDB, no replica set) —
+  solved instead via atomic per-item conditional updates + manual
+  compensation. See [known-limitations.md](../known-limitations.md) #8.
+  If this deployment is ever migrated to a replica set, revisit whether
+  wrapping the whole flow in a real transaction is worth the added complexity.
 - Add a dedicated order-confirmation route instead of an inline checkout state.
 - Add user-facing error handling for failed order submission.

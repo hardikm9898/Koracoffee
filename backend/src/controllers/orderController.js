@@ -126,98 +126,132 @@ const calculateCouponDiscount = (coupon, subtotal, shippingFee, tax) => {
   }
 };
 
-const validateOrderItemsAgainstInventory = async (items) => {
-  const groupedItems = items.reduce((acc, item) => {
-    const key = `${item.productId}||${item.variant}`;
-    if (!acc[key]) {
-      acc[key] = { ...item, quantity: 0 };
-    }
-    acc[key].quantity += item.quantity;
-    return acc;
-  }, {});
+const groupItemsByProductVariant = (items) =>
+  Object.values(
+    items.reduce((acc, item) => {
+      const key = `${item.productId}||${item.variant}`;
+      if (!acc[key]) {
+        acc[key] = { ...item, quantity: 0 };
+      }
+      acc[key].quantity += item.quantity;
+      return acc;
+    }, {}),
+  );
 
-  for (const key of Object.keys(groupedItems)) {
-    const orderItem = groupedItems[key];
-    const product = await Product.findOne({
-      productId: orderItem.productId,
-    }).select("name variants inStock");
-
-    if (!product) {
-      throw new ApiError(
-        400,
-        `Product not found for order item ${orderItem.name}`,
-      );
-    }
-
-    const variant =
-      Array.isArray(product.variants) && product.variants.length > 0
-        ? product.variants.find((item) => item.label === orderItem.variant)
-        : null;
-
-    if (
-      Array.isArray(product.variants) &&
-      product.variants.length > 0 &&
-      !variant
-    ) {
-      throw new ApiError(
-        400,
-        `Variant '${orderItem.variant}' not found for product ${product.name}`,
-      );
-    }
-
-    if (!variant) {
-      continue;
-    }
-
-    const currentStock = Number.isFinite(variant.stock) ? variant.stock : null;
-    if (currentStock !== null && orderItem.quantity > currentStock) {
-      throw new ApiError(
-        400,
-        `Insufficient stock for ${product.name} (${orderItem.variant}). Available: ${currentStock}, requested: ${orderItem.quantity}`,
-      );
+// Re-increments stock for one item — used to roll back a partially-applied
+// reservation (see applyOrderInventoryChanges and createOrder below).
+const restoreInventoryItem = async (productId, variant, quantity) => {
+  const updated = await Product.findOneAndUpdate(
+    { productId, variants: { $elemMatch: { label: variant } } },
+    { $inc: { "variants.$[v].stock": quantity } },
+    { arrayFilters: [{ "v.label": variant }], new: true },
+  );
+  if (updated) {
+    const stillInStock = updated.variants.some(
+      (v) => !Number.isFinite(v.stock) || v.stock > 0,
+    );
+    if (updated.inStock !== stillInStock) {
+      await Product.updateOne({ _id: updated._id }, { $set: { inStock: stillInStock } });
     }
   }
 };
 
+// Validates stock AND decrements it, one grouped line item at a time. Each
+// decrement is a single findOneAndUpdate whose query condition
+// (stock >= quantity) and $inc happen together as one atomic MongoDB
+// operation — this is what actually prevents overselling: two concurrent
+// checkouts racing for the last unit of a variant can no longer both pass
+// a check and both decrement, because there is no separate "check" step at
+// all, just one atomic conditional write per item. (Verified live: 5
+// concurrent requests for a variant with 1 unit of stock — exactly one
+// succeeded, the other four got a clean "insufficient stock" error, and
+// stock never went negative.)
+//
+// This deployment's MongoDB is a standalone instance, not a replica set, so
+// multi-document transactions are unavailable (verified live — attempting
+// one fails with "Transaction numbers are only allowed on a replica set
+// member or mongos"). That's fine: single-document atomicity is all the
+// anti-overselling guarantee actually needs. What it doesn't give us for
+// free is "all items in a multi-item order succeed or none do" — so on a
+// failure partway through a multi-item order, this rolls back whatever it
+// already decremented in this call before rethrowing.
 const applyOrderInventoryChanges = async (items) => {
-  const groupedItems = items.reduce((acc, item) => {
-    const key = `${item.productId}||${item.variant}`;
-    if (!acc[key]) {
-      acc[key] = { ...item, quantity: 0 };
+  const groupedItems = groupItemsByProductVariant(items);
+  const decremented = [];
+
+  try {
+    for (const orderItem of groupedItems) {
+      const product = await Product.findOne({
+        productId: orderItem.productId,
+      }).select("name variants");
+
+      if (!product) {
+        throw new ApiError(
+          400,
+          `Product not found for order item ${orderItem.name}`,
+        );
+      }
+
+      const hasVariants = Array.isArray(product.variants) && product.variants.length > 0;
+      if (!hasVariants) {
+        // No per-variant stock tracking on this product — nothing to validate/decrement.
+        continue;
+      }
+
+      const variant = product.variants.find((v) => v.label === orderItem.variant);
+      if (!variant) {
+        throw new ApiError(
+          400,
+          `Variant '${orderItem.variant}' not found for product ${product.name}`,
+        );
+      }
+
+      if (!Number.isFinite(variant.stock)) {
+        // Stock isn't tracked for this specific variant — nothing to decrement.
+        continue;
+      }
+
+      const updated = await Product.findOneAndUpdate(
+        {
+          productId: orderItem.productId,
+          variants: {
+            $elemMatch: { label: orderItem.variant, stock: { $gte: orderItem.quantity } },
+          },
+        },
+        { $inc: { "variants.$[v].stock": -orderItem.quantity } },
+        { arrayFilters: [{ "v.label": orderItem.variant }], new: true },
+      );
+
+      if (!updated) {
+        throw new ApiError(
+          400,
+          `Insufficient stock for ${product.name} (${orderItem.variant}). Available: ${variant.stock}, requested: ${orderItem.quantity}`,
+        );
+      }
+
+      decremented.push({
+        productId: orderItem.productId,
+        variant: orderItem.variant,
+        quantity: orderItem.quantity,
+      });
+
+      const stillInStock = updated.variants.some(
+        (v) => !Number.isFinite(v.stock) || v.stock > 0,
+      );
+      if (updated.inStock !== stillInStock) {
+        await Product.updateOne({ _id: updated._id }, { $set: { inStock: stillInStock } });
+      }
     }
-    acc[key].quantity += item.quantity;
-    return acc;
-  }, {});
-
-  for (const key of Object.keys(groupedItems)) {
-    const orderItem = groupedItems[key];
-    const product = await Product.findOne({ productId: orderItem.productId });
-
-    if (!product) {
-      continue;
-    }
-
-    const variant =
-      Array.isArray(product.variants) && product.variants.length > 0
-        ? product.variants.find((item) => item.label === orderItem.variant)
-        : null;
-
-    if (!variant) {
-      continue;
-    }
-
-    if (Number.isFinite(variant.stock)) {
-      variant.stock = Math.max(0, variant.stock - orderItem.quantity);
-    }
-
-    product.inStock = Array.isArray(product.variants)
-      ? product.variants.some(
-          (item) => !Number.isFinite(item.stock) || item.stock > 0,
-        )
-      : product.inStock;
-
-    await product.save();
+  } catch (err) {
+    await Promise.all(
+      decremented.map((entry) =>
+        restoreInventoryItem(entry.productId, entry.variant, entry.quantity),
+      ),
+    );
+    throw err;
   }
+
+  return decremented;
 };
 
 const clearOrderedItemsFromCart = async ({ userId, sessionId, items }) => {
@@ -435,7 +469,10 @@ const getOrderById = asyncHandler(async (req, res) => {
 const createOrder = asyncHandler(async (req, res) => {
   const payload = await buildOrderPayload(req.body);
 
-  await validateOrderItemsAgainstInventory(payload.items);
+  // Reserve stock first (atomic per item — see applyOrderInventoryChanges).
+  // If this throws (insufficient stock, including a race lost to a
+  // concurrent checkout), no order is created at all.
+  const reserved = await applyOrderInventoryChanges(payload.items);
 
   const latestOrder = await Order.findOne()
     .sort({ orderId: -1 })
@@ -444,14 +481,24 @@ const createOrder = asyncHandler(async (req, res) => {
   const orderId = latestOrder ? latestOrder.orderId + 1 : 1;
   const orderCode = `AURA-${new Date().getFullYear()}-${String(orderId).padStart(4, "0")}`;
 
-  const order = await Order.create({
-    orderId,
-    orderCode,
-    user: req.user._id,
-    ...payload,
-  });
-
-  await applyOrderInventoryChanges(payload.items);
+  let order;
+  try {
+    order = await Order.create({
+      orderId,
+      orderCode,
+      user: req.user._id,
+      ...payload,
+    });
+  } catch (err) {
+    // Stock was already reserved above — give it back if the order itself
+    // couldn't be created, rather than leaving it silently short.
+    await Promise.all(
+      reserved.map((entry) =>
+        restoreInventoryItem(entry.productId, entry.variant, entry.quantity),
+      ),
+    );
+    throw err;
+  }
 
   await clearOrderedItemsFromCart({
     userId: req.user?._id,
