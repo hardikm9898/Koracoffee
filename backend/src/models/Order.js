@@ -63,6 +63,12 @@ const orderSchema = new mongoose.Schema(
       unique: true,
       index: true,
     },
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+      index: true,
+    },
     orderCode: {
       type: String,
       required: true,

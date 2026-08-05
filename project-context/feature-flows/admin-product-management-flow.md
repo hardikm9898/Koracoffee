@@ -19,8 +19,9 @@ variants, flavor stats, and brew guide info.
 - `POST /api/admin/products/upload-image` (multipart, up to 10 images, 2MB each)
 - `POST /api/admin/products/bulk-upload?dryRun=&mode=create|upsert` (CSV import)
 
-All `protect + requireAdmin`. (Note: identical CRUD is also reachable with
-**no auth** via `/api/products*` — see [known-limitations.md](../known-limitations.md) #1.)
+All `protect + requireAdmin`. The public `/api/products*` router is GET-only
+(mutations were removed from it — see [known-limitations.md](../known-limitations.md) #1) —
+these admin routes are now the *only* way to create/update/delete products.
 
 ## Related Controllers
 
@@ -102,9 +103,8 @@ front-end/admin-frontend/src/lib/admin-product-api.ts
   page of results.
 - Assuming CSV bulk upload validates product name uniqueness — it explicitly does not.
 - Forgetting that deleting a product leaves orphaned `Review` rows behind.
-- Assuming `/api/products*` (no `/admin` prefix) is read-only from the admin's
-  perspective — it has full unauthenticated CRUD too; don't build new admin
-  features against the public router by mistake.
+- Building new admin mutation features against `/api/products*` (no `/admin`
+  prefix) — that router is GET-only now; all writes belong under `/api/admin/products*`.
 
 ## Future Extension Points
 

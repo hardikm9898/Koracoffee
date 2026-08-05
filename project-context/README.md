@@ -77,9 +77,11 @@ DB tables, business rules, dependencies, files involved, common mistakes, extens
 - **OTP is not random in non-production environments** — it's hardcoded to
   `"111111"` for both admin and (when `NODE_ENV !== "production"`) regular users.
   See [authentication.md](authentication.md).
-- **Several core mutation routes are unauthenticated**: public (non-`/admin`)
-  product, category, and order routes allow create/update/delete with no login
-  at all. See [known-limitations.md](known-limitations.md) and [api-reference.md](api-reference.md).
+- ~~**Several core mutation routes are unauthenticated**~~ **FIXED** (2026-08-05):
+  public product/category routers are now GET-only; order status mutation is
+  admin-only via `/api/admin/orders`; the public order router requires login
+  and scopes results to the caller via a new `Order.user` field. See
+  [known-limitations.md](known-limitations.md) and [api-reference.md](api-reference.md).
 - **Admin status is not a DB field** — it's computed per-request from a
   `ADMIN_PHONE_NUMBERS` env allowlist. See [authentication.md](authentication.md).
 - **Prices are client-trusted** in both cart and order creation; the server

@@ -43,36 +43,39 @@ envelope `{ success, message?, data }` (errors: `{ success:false, message }`).
 | DELETE | `/me/items` | user | remove |
 | POST | `/me/clear` | user | clear |
 
-## Products — `/api/products` (`productRoutes.js` → `productController.js`)
+## Products — `/api/products` (`productRoutes.js` → `productController.js`) — **read-only**
 
 | Method | Path | Auth | Notes |
 |---|---|---|---|
 | GET | `/` | — | filters: `page,limit(≤30),category,search,inStock,minPrice,maxPrice,sort` |
 | GET | `/:productId` | — | numeric productId |
-| POST | `/` | **—** | ⚠ no auth — see known-limitations |
-| PATCH | `/:productId` | **—** | ⚠ no auth |
-| DELETE | `/:productId` | **—** | ⚠ no auth |
 
-`POST /api/products/upload-image` (`uploadRoutes.js`) — **— (no auth)**, `multer.array("images",10)`, 2MB/file, png/jpeg/webp.
+Create/update/delete were removed from this router (they had no auth at all
+— see [known-limitations.md](known-limitations.md) #1, now resolved). All
+product mutations live exclusively under `/api/admin/products*` (`admin` auth).
 
-## Categories — `/api/categories` (`categoryRoutes.js` → `categoryController.js`)
+`POST /api/products/upload-image` (`uploadRoutes.js`) — **— (no auth)**, `multer.array("images",10)`, 2MB/file, png/jpeg/webp. Still unauthenticated — tracked as [known-limitations.md](known-limitations.md) #3.
+
+## Categories — `/api/categories` (`categoryRoutes.js` → `categoryController.js`) — **read-only**
 
 | Method | Path | Auth |
 |---|---|---|
 | GET | `/` | — |
-| POST | `/` | **—** ⚠ |
-| PATCH | `/:id` | **—** ⚠ |
-| DELETE | `/:id` | **—** ⚠ |
+
+Create/update/delete were removed from this router — see product note above. Mutations live under `/api/admin/categories*` (`admin` auth).
 
 ## Orders — `/api/orders` (`orderRoutes.js` → `orderController.js`)
 
+All routes require `user` auth (`protect`). `listOrders`/`getOrderById` are
+scoped to the requesting user (`Order.user`) unless the caller is an admin.
+Status mutation is **not** exposed on this router at all — only via
+`/api/admin/orders` (see below).
+
 | Method | Path | Auth | Notes |
 |---|---|---|---|
-| GET | `/` | **—** ⚠ | lists ALL orders publicly |
-| GET | `/:orderId` | **—** ⚠ | |
-| POST | `/` | user | creates order, decrements stock, clears ordered items from cart |
-| PATCH | `/:orderId` | **—** ⚠ | status update; requires `cancelReason`/`refundReason` when setting Cancelled/Refunded |
-| POST | `/:orderId/advance` | **—** ⚠ | linear advance: Received→Roasting→Packaging→Shipped→Delivered |
+| GET | `/` | user | own orders only (all orders if caller is admin) |
+| GET | `/:orderId` | user | own order only (any order if caller is admin) |
+| POST | `/` | user | creates order (stamps `Order.user = req.user._id`), decrements stock, clears ordered items from cart |
 
 ## Reviews — `/api/reviews` (`reviewRoutes.js` → `reviewController.js`)
 
@@ -113,7 +116,11 @@ Same CRUD shape as public categories, plus `POST /upload-image` (`adminCategoryU
 
 ## Admin Orders — `/api/admin/orders` (all `admin` auth)
 
-Reuses `orderController`'s `listOrders`, `getOrderById`, `updateOrderStatus` (PATCH), `advanceOrderStatus` (POST `:orderId/advance`) — identical logic to the public order routes, just gated by admin auth here.
+Reuses `orderController`'s `listOrders`, `getOrderById` (unscoped here, since
+`req.userIsAdmin` is true), plus `updateOrderStatus` (PATCH) and
+`advanceOrderStatus` (POST `:orderId/advance`) — **these two status-mutation
+endpoints are only reachable through this admin router**, not the public
+`/api/orders` router.
 
 ## Admin Reviews — `/api/admin/reviews` (all `admin` auth)
 

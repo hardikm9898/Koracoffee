@@ -153,26 +153,16 @@ const getUserOrderHistory = asyncHandler(async (req, res) => {
     throw new ApiError(404, "User not found");
   }
 
-  // Orders are linked by shipping phone in this codebase.
+  // Orders are matched primarily by the Order.user reference (set on every
+  // order placed since that field was added). Shipping-phone match is kept
+  // as a fallback so orders created before Order.user existed, or genuine
+  // guest/gift orders placed with this phone number, still surface here.
   const phoneNumber = String(user.phoneNumber || "").trim();
-  if (!phoneNumber) {
-    return res.status(200).json({
-      success: true,
-      data: {
-        user: sanitizeUser(user, 0),
-        summary: {
-          totalOrders: 0,
-          totalSpend: 0,
-          avgOrderValue: 0,
-          avgDaysBetweenOrders: null,
-          lastOrderAt: null,
-        },
-        orders: [],
-      },
-    });
-  }
+  const orderFilter = phoneNumber
+    ? { $or: [{ user: user._id }, { "shipping.phone": phoneNumber }] }
+    : { user: user._id };
 
-  const orders = await Order.find({ "shipping.phone": phoneNumber })
+  const orders = await Order.find(orderFilter)
     .select("orderId orderCode status items shipping subtotal shippingFee tax total eta notes paymentMethod cancelReason refundReason createdAt updatedAt")
     .sort({ createdAt: -1 })
     .limit(limit)

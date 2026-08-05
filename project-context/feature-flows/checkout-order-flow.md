@@ -12,15 +12,14 @@ fulfillment.
 
 ## Related APIs
 
-- `POST /api/orders` (create, `protect` required)
-- `GET /api/orders`, `GET /api/orders/:orderId` (list/detail — **no auth**, see limitations)
-- `PATCH /api/orders/:orderId` (status update)
-- `POST /api/orders/:orderId/advance` (linear status advance)
+- `POST /api/orders` (create, `protect` required, stamps `Order.user`)
+- `GET /api/orders`, `GET /api/orders/:orderId` (`protect` required — scoped to `req.user` unless admin)
+- `PATCH /api/orders/:orderId`, `POST /api/orders/:orderId/advance` — **admin-only**, reachable only via `/api/admin/orders`, not this router
 - `GET/POST/PATCH/DELETE /api/users/me/addresses*` (address management during checkout)
 
 ## Related Controllers
 
-`orderController.js` (`createOrder`, `listOrders`, `getOrderById`, `updateOrderStatus`, `advanceOrderStatus`), `userController.js` (address CRUD)
+`orderController.js` (`createOrder`, `listOrders`, `getOrderById` — the last two are also reused by the admin router; `updateOrderStatus`/`advanceOrderStatus` are exported but only wired into the admin router), `userController.js` (address CRUD)
 
 ## Related Services
 
@@ -62,6 +61,9 @@ See [admin-order-management-flow.md](admin-order-management-flow.md) for status 
   `applyOrderInventoryChanges` decrements stock **after** order creation, not
   atomically — see [known-limitations.md](../known-limitations.md) #8.
 - **Order IDs**: `orderId` = max existing + 1; `orderCode` = `AURA-<year>-<orderId padded to 4>`.
+- **Order ownership**: `Order.user` is stamped from `req.user._id` at creation
+  (auth is required to reach `createOrder`). `listOrders`/`getOrderById` on
+  the public router only ever return the caller's own orders.
 - **Status machine**: enum `Received, Roasting, Packaging, Shipped, Delivered,
   Cancelled, Refunded`. `advanceOrderStatus` only moves forward along
   `Received → Roasting → Packaging → Shipped → Delivered` (Cancelled/Refunded
@@ -100,8 +102,6 @@ front-end/frontend/src/lib/user-api.ts
 
 ## Common Mistakes
 
-- Assuming `GET /api/orders`/`GET /api/orders/:id` require auth — they don't
-  (public); don't assume order data is private in its current state.
 - Assuming a failed order creation shows the user an error — currently it's
   only `console.warn`ed; no visible failure/retry UI exists.
 - Assuming coupon codes are validated against a database — they're hardcoded

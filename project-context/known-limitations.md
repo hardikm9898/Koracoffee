@@ -7,17 +7,17 @@ might be relied upon elsewhere.
 
 ## Security — high priority
 
-1. **Public product/category routes have no auth on mutating verbs.**
-   `POST/PATCH/DELETE /api/products*` and `/api/categories*` (the non-`/admin`
-   prefixed routers) apply no middleware at all — anyone can create, edit, or
-   delete products/categories without logging in, duplicating what the
-   properly-gated `/api/admin/products*`/`/api/admin/categories*` already do
-   correctly. Backend: `productRoutes.js`, `categoryRoutes.js`.
-2. **Public order routes leak and allow tampering with all orders.**
-   `GET /api/orders`, `GET /api/orders/:id`, `PATCH /api/orders/:id`,
-   `POST /api/orders/:id/advance` require no auth — anyone can list every
-   order (names/emails/phones/addresses), view any order, change its status,
-   or advance it. Backend: `orderRoutes.js`.
+1. ~~**Public product/category routes have no auth on mutating verbs.**~~
+   **RESOLVED.** `productRoutes.js`/`categoryRoutes.js` are now GET-only;
+   create/update/delete only exist under `/api/admin/products*`/`/api/admin/categories*`
+   (`protect+requireAdmin`).
+2. ~~**Public order routes leak and allow tampering with all orders.**~~
+   **RESOLVED.** `orderRoutes.js` now requires `protect` on every route.
+   `listOrders`/`getOrderById` scope results to `req.user` unless
+   `req.userIsAdmin` (see `orderController.js`, which now also stamps
+   `Order.user` at creation time). Status mutation (`PATCH`, `/advance`) was
+   removed from the public router entirely — only reachable via
+   `/api/admin/orders` (admin-only), matching how the admin UI already used it.
 3. **Public product image upload has no auth or rate limiting.**
    `POST /api/products/upload-image` — open file-upload abuse/storage-exhaustion vector.
 4. **OTP is not actually random.** `otpService.generateAdminOtp()` always
@@ -32,10 +32,14 @@ might be relied upon elsewhere.
 
 ## Data integrity / correctness
 
-6. **`Order` has no `user` reference.** Admin "customer order history" is
-   computed by string-matching `Order.shipping.phone === User.phoneNumber` —
-   breaks silently for gift orders, guest checkouts with a different contact
-   number, or after a user changes their account phone.
+6. ~~**`Order` has no `user` reference.**~~ **RESOLVED for new orders.**
+   `Order.user` (ObjectId ref) now exists and is stamped at creation time
+   (`orderController.createOrder`, `protect` already guarantees `req.user`).
+   `adminUserController.getUserOrderHistory` now matches
+   `{ $or: [{ user }, { "shipping.phone": phoneNumber }] }` — the phone match
+   is kept as a fallback for orders placed **before** this field existed, and
+   for genuine guest/gift orders. Orders created going forward are reliably
+   linked; historical pre-migration orders still rely on the phone match.
 7. **Prices are client-trusted.** Neither `cartController` (add/update item)
    nor `orderController.buildOrderPayload` re-derive price from
    `Product.basePrice`/variant price server-side — only stock is validated at

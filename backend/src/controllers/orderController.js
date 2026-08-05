@@ -381,6 +381,12 @@ const listOrders = asyncHandler(async (req, res) => {
     filter.status = status;
   }
 
+  // Non-admin callers only ever see their own orders. Admin callers (routed
+  // through /api/admin/orders, which applies requireAdmin) see everything.
+  if (!req.userIsAdmin) {
+    filter.user = req.user._id;
+  }
+
   const orders = await Order.find(filter).sort({ createdAt: -1 });
 
   res.status(200).json({
@@ -395,7 +401,12 @@ const getOrderById = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Order id must be a number");
   }
 
-  const order = await Order.findOne({ orderId });
+  const filter = { orderId };
+  if (!req.userIsAdmin) {
+    filter.user = req.user._id;
+  }
+
+  const order = await Order.findOne(filter);
   if (!order) {
     throw new ApiError(404, "Order not found");
   }
@@ -421,6 +432,7 @@ const createOrder = asyncHandler(async (req, res) => {
   const order = await Order.create({
     orderId,
     orderCode,
+    user: req.user._id,
     ...payload,
   });
 

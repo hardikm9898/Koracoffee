@@ -53,11 +53,11 @@ customer's own view of their orders is [user-profile-address-flow.md](user-profi
 
 ## Important Business Rules
 
-- **Order history linkage is by string-matching `Order.shipping.phone` to
-  `User.phoneNumber`** — there is no `Order.user` ObjectId ref. This breaks
-  silently if a customer orders with a different contact phone (gift orders,
-  typos) or changes their account phone number after ordering. This is the
-  single most important caveat in this flow — see [known-limitations.md](../known-limitations.md) #6.
+- **Order history linkage now uses `Order.user` (ObjectId ref) as the primary
+  match**, with `Order.shipping.phone === User.phoneNumber` kept only as a
+  fallback for orders created before `Order.user` existed, or genuine
+  guest/gift orders. New orders are reliably linked regardless of what
+  contact phone was entered at checkout. See [known-limitations.md](../known-limitations.md) #6.
 - Per-user address counts are computed via a single `Address.aggregate`
   grouped by `user`, joined in-memory (avoids N+1 queries).
 - `summarizeOrderCadence` computes average days between consecutive orders
@@ -87,9 +87,10 @@ front-end/admin-frontend/src/lib/admin-user-api.ts
 
 ## Common Mistakes
 
-- Assuming a customer's order history here is guaranteed complete — it will
-  silently miss orders placed with a different shipping phone than the
-  account's registered phone.
+- Assuming a customer's order history is guaranteed complete for orders
+  placed **before** `Order.user` existed — those still rely on the phone
+  fallback and can miss orders placed with a different shipping phone.
+  Orders placed going forward are unaffected by this.
 - Assuming there's an edit/delete customer UI to hook into — there isn't yet;
   the API client functions exist but no page calls them.
 - Assuming `customerSegments` shown on this page reflects real backend
@@ -97,10 +98,7 @@ front-end/admin-frontend/src/lib/admin-user-api.ts
 
 ## Future Extension Points
 
-- Add a real `Order.user` ObjectId ref populated at order-creation time
-  (requires the customer to be authenticated when ordering, which is already
-  enforced by `POST /api/orders`) to make this linkage reliable — this is the
-  highest-value fix for this entire flow.
+- ~~Add a real `Order.user` ObjectId ref~~ **Done** — see above.
 - Build the edit/delete customer UI on top of the already-existing
   `updateUser`/`deleteUser` API client functions, or remove them if not needed.
 - Replace the hardcoded `customerSegments` panel with a real backend

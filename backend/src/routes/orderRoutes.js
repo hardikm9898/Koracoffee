@@ -3,17 +3,21 @@ const {
   listOrders,
   getOrderById,
   createOrder,
-  updateOrderStatus,
-  advanceOrderStatus,
 } = require("../controllers/orderController");
 const { protect } = require("../middlewares/authMiddleware");
 
 const router = express.Router();
 
+// Every route here requires a logged-in user. listOrders/getOrderById scope
+// results to req.user unless req.userIsAdmin (see orderController.js) — a
+// regular customer can only ever see their own orders through this router.
+// Status mutation (PATCH /:orderId, POST /:orderId/advance) is intentionally
+// NOT exposed here: only admins may change order status, via
+// /api/admin/orders (adminOrderRoutes.js).
+router.use(protect);
+
 router.get("/", listOrders);
 router.get("/:orderId", getOrderById);
-router.post("/", protect, createOrder);
-router.patch("/:orderId", updateOrderStatus);
-router.post("/:orderId/advance", advanceOrderStatus);
+router.post("/", createOrder);
 
 module.exports = router;

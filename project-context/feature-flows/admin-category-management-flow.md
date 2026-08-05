@@ -17,8 +17,9 @@ including a category image.
 - `DELETE /api/admin/categories/:id`
 - `POST /api/admin/categories/upload-image` (multipart, single `image` field)
 
-All `protect + requireAdmin`. (Identical CRUD also reachable with **no auth**
-via `/api/categories*` — see [known-limitations.md](../known-limitations.md) #1.)
+All `protect + requireAdmin`. The public `/api/categories*` router is
+GET-only (mutations were removed — see [known-limitations.md](../known-limitations.md) #1);
+these admin routes are the only way to create/update/delete categories.
 
 ## Related Controllers
 

@@ -85,8 +85,9 @@ front-end/frontend/src/lib/data.ts
 
 ## Common Mistakes
 
-- Assuming `/api/products` list/detail routes require auth — they don't
-  (and neither do their mutating verbs — see [known-limitations.md](../known-limitations.md) #1).
+- Assuming `/api/products` list/detail routes require auth — they don't.
+  Mutations (create/update/delete) now require admin auth and only exist
+  under `/api/admin/products*` — the public router is GET-only.
 - Assuming shop filters are client-side — they trigger a fresh `GET /api/products`
   request on every change; there's no local filtering of an already-fetched set.
 - Forgetting the `limit ≤ 30` cap on `GET /api/products` when building any

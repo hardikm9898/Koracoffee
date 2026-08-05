@@ -87,6 +87,7 @@ possible under race conditions; prevented only by find-or-create logic in
 | Field | Type | Notes |
 |---|---|---|
 | `orderId` | Number | required, unique, indexed |
+| `user` | ObjectId ref `User` | default `null`, indexed — stamped at creation time for every order placed since this field was added; `null` on orders created before that. See note below. |
 | `orderCode` | String | required, unique — format `AURA-<year>-<orderId padded to 4>` |
 | `status` | String enum | `Received, Roasting, Packaging, Shipped, Delivered, Cancelled, Refunded` — default `Received` |
 | `paymentMethod` | String | default `"Card"` |
@@ -101,11 +102,13 @@ possible under race conditions; prevented only by find-or-create logic in
 | `discountLabel` | String | default `""` |
 | `notes` | String | default `""` |
 
-**Important**: Orders are linked to a `User` only indirectly, by string-matching
-`shipping.phone` against `User.phoneNumber` in `adminUserController.getUserOrderHistory`.
-There is no `Order.user` ref. See [known-limitations.md](known-limitations.md) —
-this breaks if a customer orders with a different contact phone than their
-account phone.
+**Order-to-user linkage**: `Order.user` is now a real ObjectId ref, set from
+`req.user._id` at order-creation time (auth is required to place an order).
+`adminUserController.getUserOrderHistory` matches
+`{ $or: [{ user }, { "shipping.phone": phoneNumber }] }` — the phone match is
+kept only as a fallback for orders that predate this field, or genuine
+guest/gift orders placed under a different account's phone. New orders no
+longer depend on phone matching to be found.
 
 ## Review (`models/Review.js`)
 
@@ -130,12 +133,13 @@ Category ←── Product.category (ObjectId ref)
 User     ←── Address.user (ObjectId ref)
 User     ←── Cart.user (ObjectId ref, optional)
 User     ←── Review.user (ObjectId ref, optional, effectively unused)
+User     ←── Order.user (ObjectId ref, nullable — null on pre-migration orders)
 Product.productId (Number) ←── loosely referenced by:
     Cart.items[].productId
     Order.items[].productId
     Review.productId
-User.phoneNumber (String) ←── loosely matched against Order.shipping.phone
-    (no real FK — this is the only way to compute "a user's orders")
+User.phoneNumber (String) ←── still loosely matched against Order.shipping.phone
+    as a fallback for orders that predate the Order.user field
 ```
 
 No model uses a real foreign key to `Product` except `Category` (the reverse

@@ -44,7 +44,9 @@ const parseResponse = async <T>(response: Response): Promise<T> => {
 };
 
 export async function getOrders(): Promise<OrderRecord[]> {
+  const token = getAuthToken();
   const response = await fetch(`${API_BASE_URL}/orders`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     cache: "no-store",
   });
   return parseResponse<OrderRecord[]>(response);

@@ -16,8 +16,12 @@ a required reason), and inspect order detail/fulfillment info.
 - `PATCH /api/admin/orders/:orderId` (status update, `{status, cancelReason?, refundReason?}`)
 - `POST /api/admin/orders/:orderId/advance` (linear advance — defined in the API client but **never called** from any admin page; dead code on the frontend)
 
-All `protect + requireAdmin`. These reuse the exact same `orderController.js`
-functions as the public, unauthenticated `/api/orders*` routes — see
+All `protect + requireAdmin`. `listOrders`/`getOrderById` are shared with the
+public `/api/orders*` router, but that router now requires `protect` and
+scopes results to the caller — an admin caller (`req.userIsAdmin === true`)
+still sees everything through either router; a non-admin caller only ever
+sees their own orders via the public router. `updateOrderStatus`/
+`advanceOrderStatus` are **only** reachable through this admin router — see
 [known-limitations.md](../known-limitations.md) #2.
 
 ## Related Controllers
