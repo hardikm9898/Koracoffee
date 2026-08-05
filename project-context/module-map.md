@@ -43,7 +43,7 @@ routers for these resources have no auth on mutating verbs).
 | `context/CartContext.tsx` | `lib/auth.ts` (`getGuestSessionId`, `getStoredSession`, `getVerifiedAuthToken`) |
 | `Navbar.tsx`, `cart/page.tsx`, `checkout/page.tsx`, `favorites/page.tsx`, `ShopClient.tsx`, `ProductDetailClient.tsx` | `context/CartContext.tsx` (`useCart`/`useAppContext`) |
 | `login/page.tsx`, `profile/page.tsx`, `checkout/page.tsx`, `Navbar.tsx` | `lib/auth.ts` |
-| `cart/page.tsx`, `offers/page.tsx`, `CoffeeQuiz.tsx` | `lib/data.ts` (re-export shim over `product-api.ts` + static `VARIANTS`) |
+| `cart/page.tsx`, `offers/page.tsx` | `lib/data.ts` (re-export shim over `product-api.ts` + static `VARIANTS`) |
 | `app/page.tsx`, `shop/[id]/page.tsx`, `ShopClient.tsx`, `ProductDetailClient.tsx` | `lib/product-api.ts` directly |
 | `ProductDetailClient.tsx` | `lib/review-api.ts` |
 | `checkout/page.tsx` | `lib/order-api.ts` (create), `lib/user-api.ts` (addresses), `lib/coupon-api.ts` (preview) |
@@ -63,12 +63,15 @@ routers for these resources have no auth on mutating verbs).
 | `customers/*` pages | `lib/admin-user-api.ts`, `lib/admin-data.ts` (static segments) |
 | `reviews/page.tsx` | `lib/admin-review-api.ts` |
 | `settings/page.tsx` | `lib/admin-data.ts` (static `settingsGroups` only, no API) |
-| every `lib/admin-*-api.ts` except `admin-auth.ts` | `lib/admin-api.ts` (`adminFetch`) |
+| every `lib/admin-*-api.ts`, including `admin-auth.ts` | `lib/admin-api.ts` (`adminFetch`, `parseAdminResponse`) |
 | `AdminSidebar.tsx` | `lib/admin-auth.ts` (`logoutAdmin`) |
 | `src/proxy.ts` | standalone — no imports from `lib/`, runs at Next.js middleware layer |
 
 ## Dead / unused code worth knowing about before "why isn't this used" surprises
 
 - Backend: `Order.itemStatus` field (schema only, never read/written); `auth_token` cookie fallback in `authMiddleware` (nothing ever sets it).
-- Customer frontend: `components/quiz/CoffeeQuiz.tsx` (not imported anywhere); commented-out "Command Center" block in `profile/page.tsx`.
 - Admin frontend: `getCurrentAdmin()`, `getProductInventory()`/`getProductInventoryData`, `advanceOrderStatus()`, `getUserById()`, `updateUser()`, `deleteUser()` — all exported from their respective `lib/admin-*-api.ts` but never called from any page.
+
+`components/quiz/CoffeeQuiz.tsx` and the commented-out "Command Center" block
+in `profile/page.tsx` (customer frontend) used to be listed here — both were
+deleted as dead code; see [known-limitations.md](known-limitations.md) #27.

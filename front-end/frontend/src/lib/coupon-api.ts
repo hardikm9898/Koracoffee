@@ -1,3 +1,5 @@
+import { API_BASE_URL, parseApiResponse } from "./api-client";
+
 export type CouponRecord = {
   code: string;
   type: "percent" | "flat" | "shipping";
@@ -14,17 +16,6 @@ export type CouponValidationResult = {
   discountAmount: number;
 };
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api";
-
-const parseResponse = async <T>(response: Response): Promise<T> => {
-  const payload = await response.json();
-  if (!response.ok) {
-    throw new Error(payload.message || "API request failed");
-  }
-  return payload.data as T;
-};
-
 // Coupons used to be a hardcoded object duplicated in this app (checkout
 // and profile pages) and, separately, in the backend — with different math
 // in each place. Both hardcoded copies are gone now; this is the only
@@ -39,12 +30,12 @@ export async function validateCoupon(
   const response = await fetch(`${API_BASE_URL}/coupons/validate?${params.toString()}`, {
     cache: "no-store",
   });
-  return parseResponse<CouponValidationResult>(response);
+  return parseApiResponse<CouponValidationResult>(response);
 }
 
 export async function getActiveCoupons(): Promise<CouponRecord[]> {
   const response = await fetch(`${API_BASE_URL}/coupons`, {
     cache: "no-store",
   });
-  return parseResponse<CouponRecord[]>(response);
+  return parseApiResponse<CouponRecord[]>(response);
 }

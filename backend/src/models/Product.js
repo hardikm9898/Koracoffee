@@ -129,4 +129,15 @@ const productSchema = new mongoose.Schema(
   },
 );
 
+// Matches the actual filter shape productController.listProducts builds
+// (category + price range + inStock, in that order of selectivity) — lets
+// MongoDB use one index for that combination instead of scanning. The free
+// text search (name/notes/origin) is deliberately left as an unindexed
+// regex rather than converted to a $text index: $text does word/stem
+// matching, not substring matching, so "ken" would stop matching "Kenya" —
+// a real search-as-you-type UX regression not worth it for this catalog's
+// current size. Revisit if the catalog grows enough for that regex scan to
+// actually matter — see project-context/known-limitations.md.
+productSchema.index({ category: 1, basePrice: 1, inStock: 1 });
+
 module.exports = mongoose.model("Product", productSchema);

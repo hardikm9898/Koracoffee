@@ -1,4 +1,5 @@
 import { getAuthToken, getGuestSessionId } from "./auth";
+import { API_BASE_URL, parseApiResponse } from "./api-client";
 
 export type OrderItem = {
   productId: number;
@@ -32,17 +33,6 @@ export type OrderRecord = {
   updatedAt: string;
 };
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api";
-
-const parseResponse = async <T>(response: Response): Promise<T> => {
-  const payload = await response.json();
-  if (!response.ok) {
-    throw new Error(payload.message || "API request failed");
-  }
-  return payload.data as T;
-};
-
 type OrderListResponse = {
   items: OrderRecord[];
   pagination: { page: number; limit: number; total: number; totalPages: number; hasNextPage: boolean };
@@ -59,7 +49,7 @@ export async function getOrders(): Promise<OrderRecord[]> {
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     cache: "no-store",
   });
-  const data = await parseResponse<OrderListResponse>(response);
+  const data = await parseApiResponse<OrderListResponse>(response);
   return data.items;
 }
 
@@ -99,5 +89,5 @@ export async function createOrder(order: {
     },
     body: JSON.stringify(body),
   });
-  return parseResponse<OrderRecord>(response);
+  return parseApiResponse<OrderRecord>(response);
 }

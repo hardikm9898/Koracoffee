@@ -1,4 +1,4 @@
-import { adminFetch } from "@/lib/admin-api";
+import { adminFetch, parseAdminResponse } from "@/lib/admin-api";
 
 export type AdminProductListItem = {
   id: number;
@@ -73,14 +73,6 @@ const buildQueryString = (query: ProductQuery) => {
   return stringified ? `?${stringified}` : "";
 };
 
-const parseResponse = async <T>(response: Response): Promise<T> => {
-  const payload = await response.json();
-  if (!response.ok) {
-    throw new Error(payload.message || "API request failed");
-  }
-  return payload.data as T;
-};
-
 export type AdminBulkUploadRowStatus = "ok" | "created" | "updated" | "error";
 
 export type AdminBulkUploadResult = {
@@ -126,7 +118,7 @@ export async function bulkUploadProductsCsv(
     body: formData,
   });
 
-  return parseResponse<AdminBulkUploadResponse>(response);
+  return parseAdminResponse<AdminBulkUploadResponse>(response);
 }
 
 export async function getProducts(
@@ -139,7 +131,7 @@ export async function getProducts(
     },
   );
 
-  return parseResponse<ProductListResponse>(response);
+  return parseAdminResponse<ProductListResponse>(response);
 }
 
 export type AdminCategoryRecord = {
@@ -197,7 +189,7 @@ export async function getCategories(): Promise<AdminCategoryRecord[]> {
     cache: "no-store",
   });
 
-  return parseResponse<AdminCategoryRecord[]>(response);
+  return parseAdminResponse<AdminCategoryRecord[]>(response);
 }
 
 export async function createCategory(
@@ -211,7 +203,7 @@ export async function createCategory(
     body: JSON.stringify(category),
   });
 
-  return parseResponse<AdminCategoryRecord>(response);
+  return parseAdminResponse<AdminCategoryRecord>(response);
 }
 
 export async function uploadCategoryImage(file: File): Promise<string> {
@@ -243,7 +235,7 @@ export async function updateCategory(
     body: JSON.stringify(category),
   });
 
-  return parseResponse<AdminCategoryRecord>(response);
+  return parseAdminResponse<AdminCategoryRecord>(response);
 }
 
 export async function deleteCategory(categoryId: string): Promise<void> {
@@ -251,7 +243,7 @@ export async function deleteCategory(categoryId: string): Promise<void> {
     method: "DELETE",
   });
 
-  await parseResponse<void>(response);
+  await parseAdminResponse<void>(response);
 }
 
 export async function getProductById(
@@ -265,7 +257,7 @@ export async function getProductById(
     return null;
   }
 
-  return parseResponse<AdminProductRecord>(response);
+  return parseAdminResponse<AdminProductRecord>(response);
 }
 
 export async function uploadProductImages(files: File[]): Promise<string[]> {
@@ -296,7 +288,7 @@ export async function createProduct(
     body: JSON.stringify(product),
   });
 
-  return parseResponse<AdminProductRecord>(response);
+  return parseAdminResponse<AdminProductRecord>(response);
 }
 
 export async function updateProduct(
@@ -311,7 +303,7 @@ export async function updateProduct(
     body: JSON.stringify(product),
   });
 
-  return parseResponse<AdminProductRecord>(response);
+  return parseAdminResponse<AdminProductRecord>(response);
 }
 
 export async function deleteProduct(productId: number): Promise<void> {
@@ -319,5 +311,5 @@ export async function deleteProduct(productId: number): Promise<void> {
     method: "DELETE",
   });
 
-  await parseResponse<void>(response);
+  await parseAdminResponse<void>(response);
 }

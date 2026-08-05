@@ -1,4 +1,4 @@
-import { adminFetch } from "@/lib/admin-api";
+import { adminFetch, parseAdminResponse } from "@/lib/admin-api";
 
 export type AdminOverviewStat = {
   title: string;
@@ -74,20 +74,12 @@ export type AdminRecentActivities = {
   items: AdminRecentActivityItem[];
 };
 
-const parseResponse = async <T>(response: Response): Promise<T> => {
-  const payload = await response.json();
-  if (!response.ok) {
-    throw new Error(payload.message || "API request failed");
-  }
-  return payload.data as T;
-};
-
 export async function getOverviewStats(): Promise<AdminOverviewStat[]> {
   const response = await adminFetch(`/admin/analytics/overview`, {
     cache: "no-store",
   });
 
-  return parseResponse<AdminOverviewStat[]>(response);
+  return parseAdminResponse<AdminOverviewStat[]>(response);
 }
 
 export async function getRevenueSeries(): Promise<AdminRevenueSeriesItem[]> {
@@ -95,7 +87,7 @@ export async function getRevenueSeries(): Promise<AdminRevenueSeriesItem[]> {
     cache: "no-store",
   });
 
-  return parseResponse<AdminRevenueSeriesItem[]>(response);
+  return parseAdminResponse<AdminRevenueSeriesItem[]>(response);
 }
 
 export async function getChannelPerformance(): Promise<AdminChannelPerformance[]> {
@@ -103,7 +95,7 @@ export async function getChannelPerformance(): Promise<AdminChannelPerformance[]
     cache: "no-store",
   });
 
-  return parseResponse<AdminChannelPerformance[]>(response);
+  return parseAdminResponse<AdminChannelPerformance[]>(response);
 }
 
 export async function getFulfillmentQueue(): Promise<AdminFulfillmentQueueItem[]> {
@@ -111,7 +103,7 @@ export async function getFulfillmentQueue(): Promise<AdminFulfillmentQueueItem[]
     cache: "no-store",
   });
 
-  return parseResponse<AdminFulfillmentQueueItem[]>(response);
+  return parseAdminResponse<AdminFulfillmentQueueItem[]>(response);
 }
 
 export async function getProductInventory(): Promise<AdminProductInventoryItem[]> {
@@ -119,7 +111,7 @@ export async function getProductInventory(): Promise<AdminProductInventoryItem[]
     cache: "no-store",
   });
 
-  return parseResponse<AdminProductInventoryItem[]>(response);
+  return parseAdminResponse<AdminProductInventoryItem[]>(response);
 }
 
 export async function getSalesOverview(period: AdminSalesOverviewPeriod = "daily"): Promise<AdminSalesOverview> {
@@ -127,7 +119,7 @@ export async function getSalesOverview(period: AdminSalesOverviewPeriod = "daily
     cache: "no-store",
   });
 
-  return parseResponse<AdminSalesOverview>(response);
+  return parseAdminResponse<AdminSalesOverview>(response);
 }
 
 export async function getRecentActivities(limit = 10): Promise<AdminRecentActivities> {
@@ -135,5 +127,5 @@ export async function getRecentActivities(limit = 10): Promise<AdminRecentActivi
     cache: "no-store",
   });
 
-  return parseResponse<AdminRecentActivities>(response);
+  return parseAdminResponse<AdminRecentActivities>(response);
 }

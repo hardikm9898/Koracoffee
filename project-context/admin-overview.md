@@ -11,10 +11,13 @@ every admin action.
 - **Styling**: Tailwind v4, custom coffee-brand theme tokens, `admin-surface`
   translucent panel style, `lucide-react` icons, `cn()` helper (`lib/utils.ts`).
 - **Backend calls**: plain `fetch()` via a shared wrapper `adminFetch`
-  (`lib/admin-api.ts`), which all `lib/admin-*-api.ts` modules use except
-  `admin-auth.ts` (calls `fetch` directly). Base URL: `NEXT_PUBLIC_API_BASE_URL`
-  or `http://localhost:5000/api` — **duplicated identically** in `admin-api.ts`
-  and `admin-auth.ts`. `.env.example` documents `NEXT_PUBLIC_API_BASE_URL`; no real `.env` is committed (expected).
+  (`lib/admin-api.ts`), which every `lib/admin-*-api.ts` module uses,
+  including `admin-auth.ts`. `adminFetch` always sends `credentials:
+  "include"` and forwards cookies on SSR calls. `lib/admin-api.ts` also
+  exports `parseAdminResponse<T>()`, the shared response-parsing helper (see
+  below). Base URL: `NEXT_PUBLIC_API_BASE_URL` or `http://localhost:5000/api`,
+  defined once in `admin-api.ts`. `.env.example` documents
+  `NEXT_PUBLIC_API_BASE_URL`; no real `.env` is committed (expected).
 - **`src/proxy.ts` is NOT a CORS/API proxy** despite the name — it's Next.js
   middleware that only does auth route-guarding (redirect to `/login` if no
   `admin_token`). The browser calls the backend directly; CORS must be
@@ -35,8 +38,9 @@ Route protection is `src/proxy.ts` middleware checking for that cookie. See
 
 ## API client pattern
 
-Every `lib/admin-*-api.ts` file duplicates a local `parseResponse<T>()` helper
-expecting envelope `{ data, message? }`; GET requests pass `{ cache: "no-store" }`.
+Every `lib/admin-*-api.ts` file, including `admin-auth.ts`, imports the
+shared `parseAdminResponse<T>()` from `lib/admin-api.ts` (envelope `{ data,
+message? }`); GET requests pass `{ cache: "no-store" }`.
 See [coding-patterns.md](coding-patterns.md).
 
 ## Notable gaps / risks

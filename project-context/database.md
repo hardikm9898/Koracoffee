@@ -57,6 +57,12 @@ from the schema entirely — see [known-limitations.md](known-limitations.md) #9
 | `variantAttribute` | String | default `"Variant"` (e.g. "Grind"/"Size" label) |
 | `variants` | [`{ label, price, discountPrice, stock }`] | default `[]` — real stock tracking lives here |
 
+Compound index: `{ category: 1, basePrice: 1, inStock: 1 }` — matches the
+category+price-range+in-stock filtering `GET /products` does. The free-text
+`search` param deliberately stays a regex scan, not a `$text` index — see
+`known-limitations.md` #47 for why (substring matching for search-as-you-type
+UX vs. `$text`'s whole-token-only matching).
+
 ## Category (`models/Category.js`)
 
 | Field | Type | Notes |

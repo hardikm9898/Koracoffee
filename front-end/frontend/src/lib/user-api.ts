@@ -1,4 +1,5 @@
 import { getAuthToken } from "./auth";
+import { API_BASE_URL, parseApiResponse } from "./api-client";
 
 export type AddressRecord = {
   id: string;
@@ -39,17 +40,6 @@ export type AddressPayload = {
   isDefault?: boolean;
 };
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api";
-
-const parseResponse = async <T>(response: Response): Promise<T> => {
-  const payload = await response.json();
-  if (!response.ok) {
-    throw new Error(payload.message || "API request failed");
-  }
-  return payload.data as T;
-};
-
 export async function getCurrentUser(): Promise<CurrentUser> {
   const token = getAuthToken();
   const response = await fetch(`${API_BASE_URL}/users/me`, {
@@ -58,7 +48,7 @@ export async function getCurrentUser(): Promise<CurrentUser> {
     },
     cache: "no-store",
   });
-  return parseResponse<CurrentUser>(response);
+  return parseApiResponse<CurrentUser>(response);
 }
 
 export async function getUserAddresses(): Promise<AddressRecord[]> {
@@ -69,7 +59,7 @@ export async function getUserAddresses(): Promise<AddressRecord[]> {
     },
     cache: "no-store",
   });
-  return parseResponse<AddressRecord[]>(response);
+  return parseApiResponse<AddressRecord[]>(response);
 }
 
 export async function addUserAddress(address: AddressPayload): Promise<AddressRecord[]> {
@@ -82,7 +72,7 @@ export async function addUserAddress(address: AddressPayload): Promise<AddressRe
     },
     body: JSON.stringify(address),
   });
-  return parseResponse<AddressRecord[]>(response);
+  return parseApiResponse<AddressRecord[]>(response);
 }
 
 export async function updateUserAddress(
@@ -98,7 +88,7 @@ export async function updateUserAddress(
     },
     body: JSON.stringify(address),
   });
-  return parseResponse<AddressRecord[]>(response);
+  return parseApiResponse<AddressRecord[]>(response);
 }
 
 export async function deleteUserAddress(addressId: string): Promise<AddressRecord[]> {
@@ -109,5 +99,5 @@ export async function deleteUserAddress(addressId: string): Promise<AddressRecor
       Authorization: `Bearer ${token}`,
     },
   });
-  return parseResponse<AddressRecord[]>(response);
+  return parseApiResponse<AddressRecord[]>(response);
 }

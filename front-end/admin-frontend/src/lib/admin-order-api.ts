@@ -1,4 +1,4 @@
-import { adminFetch } from "@/lib/admin-api";
+import { adminFetch, parseAdminResponse } from "@/lib/admin-api";
 
 export type AdminOrderItem = {
   productId: number;
@@ -71,14 +71,6 @@ export type AdminOrderListResponse = {
   summary: AdminOrderSummary;
 };
 
-const parseResponse = async <T>(response: Response): Promise<T> => {
-  const payload = await response.json();
-  if (!response.ok) {
-    throw new Error(payload.message || "API request failed");
-  }
-  return payload.data as T;
-};
-
 export async function getOrders(params: {
   page?: number;
   limit?: number;
@@ -95,7 +87,7 @@ export async function getOrders(params: {
   const response = await adminFetch(`/admin/orders${queryString ? `?${queryString}` : ""}`, {
     cache: "no-store",
   });
-  return parseResponse<AdminOrderListResponse>(response);
+  return parseAdminResponse<AdminOrderListResponse>(response);
 }
 
 export async function updateOrderStatus(
@@ -109,14 +101,14 @@ export async function updateOrderStatus(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  return parseResponse<AdminOrderRecord>(response);
+  return parseAdminResponse<AdminOrderRecord>(response);
 }
 
 export async function getOrderById(orderId: number): Promise<AdminOrderRecord> {
   const response = await adminFetch(`/admin/orders/${orderId}`, {
     cache: "no-store",
   });
-  return parseResponse<AdminOrderRecord>(response);
+  return parseAdminResponse<AdminOrderRecord>(response);
 }
 
 export async function advanceOrderStatus(
@@ -125,5 +117,5 @@ export async function advanceOrderStatus(
   const response = await adminFetch(`/admin/orders/${orderId}/advance`, {
     method: "POST",
   });
-  return parseResponse<AdminOrderRecord>(response);
+  return parseAdminResponse<AdminOrderRecord>(response);
 }

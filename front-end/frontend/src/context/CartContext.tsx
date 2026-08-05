@@ -15,6 +15,7 @@ import {
   getStoredSession,
   getVerifiedAuthToken,
 } from "@/lib/auth";
+import { API_BASE_URL, parseApiResponse } from "@/lib/api-client";
 
 export type Variant = {
   weight: string;
@@ -55,9 +56,6 @@ interface AppContextType {
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api";
 
 // Favorites previously lived in plain useState with no persistence at all —
 // a page refresh silently wiped them despite a dedicated /favorites page
@@ -122,14 +120,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         : { "x-session-id": sessionId },
     });
 
-    const payload = await response.json();
-
-    if (!response.ok) {
-      throw new Error(payload.message || "Unable to fetch cart");
-    }
-
-    syncCartState(payload.data);
-    return payload.data;
+    const data = await parseApiResponse<unknown>(response, "Unable to fetch cart");
+    syncCartState(data);
+    return data;
   }, []);
 
   const attachGuestCartToUser = useCallback(async () => {
@@ -150,14 +143,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }),
     });
 
-    const payload = await response.json();
-
-    if (!response.ok) {
-      throw new Error(payload.message || "Unable to attach guest cart");
-    }
-
-    syncCartState(payload.data);
-    return payload.data;
+    const data = await parseApiResponse<unknown>(response, "Unable to attach guest cart");
+    syncCartState(data);
+    return data;
   }, []);
 
   useEffect(() => {
@@ -235,13 +223,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }),
         });
 
-        const payload = await response.json();
-
-        if (!response.ok) {
-          throw new Error(payload.message || "Unable to add item to cart");
-        }
-
-        syncCartState(payload.data);
+        const data = await parseApiResponse<unknown>(response, "Unable to add item to cart");
+        syncCartState(data);
       } catch (error) {
         console.error("Failed to add item to cart", error);
       }
@@ -272,13 +255,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }),
         });
 
-        const payload = await response.json();
-
-        if (!response.ok) {
-          throw new Error(payload.message || "Unable to remove item from cart");
-        }
-
-        syncCartState(payload.data);
+        const data = await parseApiResponse<unknown>(response, "Unable to remove item from cart");
+        syncCartState(data);
       } catch (error) {
         console.error("Failed to remove cart item", error);
       }
@@ -314,13 +292,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }),
         });
 
-        const payload = await response.json();
-
-        if (!response.ok) {
-          throw new Error(payload.message || "Unable to update quantity");
-        }
-
-        syncCartState(payload.data);
+        const data = await parseApiResponse<unknown>(response, "Unable to update quantity");
+        syncCartState(data);
       } catch (error) {
         console.error("Failed to update cart quantity", error);
       }
@@ -349,13 +322,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }),
         });
 
-        const payload = await response.json();
-
-        if (!response.ok) {
-          throw new Error(payload.message || "Unable to clear cart");
-        }
-
-        syncCartState(payload.data);
+        const data = await parseApiResponse<unknown>(response, "Unable to clear cart");
+        syncCartState(data);
       } catch (error) {
         console.error("Failed to clear cart", error);
         setCart([]);
