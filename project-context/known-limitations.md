@@ -172,6 +172,24 @@ might be relied upon elsewhere.
     app still silently falls back to `localhost:5000` rather than failing
     loudly — worth hardening if this causes a misconfigured-prod incident.
 27. `CoffeeQuiz.tsx` is dead code (built, never rendered).
+27a. ~~**No per-page SEO metadata**~~ **RESOLVED.** Every page previously
+     shared one generic `<title>`/description from the root layout — no
+     `generateMetadata`/`robots.txt`/`sitemap.ts` existed anywhere. Fixed:
+     `app/layout.tsx` now sets `metadataBase` + a `title.template`
+     (`"%s | Aura Coffee"`); `app/shop/page.tsx` has static shop-specific
+     metadata; `app/shop/[id]/page.tsx` has a `generateMetadata()` using the
+     real product name/description/image for title, description, and
+     OpenGraph. New `app/robots.ts` (disallows `/checkout`, `/profile`,
+     `/cart`) and `app/sitemap.ts` (static routes + every product, paginated
+     through the backend's 30-item page cap rather than just the first
+     page) — both are Next.js App Router metadata-route conventions, served
+     at `/robots.txt`/`/sitemap.xml` automatically. New env var
+     `NEXT_PUBLIC_SITE_URL` (documented in `.env.example`) drives the
+     absolute URLs in both. Verified live: a built+started instance served
+     a real `/robots.txt`, a `/sitemap.xml` containing both real product
+     IDs from the dev database, and `/shop/1` had `<title>Kenya AA | Aura
+     Coffee</title>` and a real per-product `<meta name="description">` —
+     previously every page shared the same generic title/description.
 
 ## Frontend — admin app
 

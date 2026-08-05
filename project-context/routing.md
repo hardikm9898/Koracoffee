@@ -23,6 +23,8 @@ for the full endpoint list. Prefixes: `/auth`, `/users`, `/cart`, `/products`,
 | `/offers` | `offers/page.tsx` | Client | Marketing offers, product highlights |
 | `/subscribe` | `subscribe/page.tsx` | Client | Subscription wizard (simulated, no backend) |
 | `/contact`, `/faq`, `/privacy`, `/shipping`, `/terms` | respective `page.tsx` | Client/Server | Static content pages |
+| `/robots.txt` | `app/robots.ts` | Server (metadata route) | Generated, not a static file — disallows `/checkout`, `/profile`, `/cart` |
+| `/sitemap.xml` | `app/sitemap.ts` | Server (metadata route) | Generated — static routes + every product (paginated through the backend) |
 
 Root `layout.tsx` wraps everything in `AppProvider` (cart/favorites context) + persistent `Navbar`/`Footer`.
 

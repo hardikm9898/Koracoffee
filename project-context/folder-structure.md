@@ -51,6 +51,8 @@ categories, orders, upload) — see [module-map.md](module-map.md).
 
 ```
 app/                     Next.js App Router pages — see routing.md
+  robots.ts               served at /robots.txt
+  sitemap.ts               served at /sitemap.xml
 components/
   home/                   AnnouncementBar, DeferredVideo, FloatingCups,
                           ImageBannerSlider, ScrollAnimation

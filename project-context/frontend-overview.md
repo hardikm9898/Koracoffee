@@ -23,6 +23,15 @@ See [routing.md](routing.md) for the full page table. No `/checkout/success` —
 order confirmation is an inline state within `/checkout` itself. No admin
 routes live here (separate app).
 
+## SEO
+
+`app/layout.tsx` sets `metadataBase` + a title template (`"%s | Aura
+Coffee"`); `app/shop/[id]/page.tsx` has a real per-product `generateMetadata()`
+(name/description/OG image); `app/robots.ts` and `app/sitemap.ts` are served
+at `/robots.txt`/`/sitemap.xml` (sitemap walks the full paginated product
+catalog, not just the first page). Driven by `NEXT_PUBLIC_SITE_URL`
+(`.env.example`).
+
 ## Auth
 
 Phone+OTP, JWT stored in `localStorage` (no cookies). See [authentication.md](authentication.md)

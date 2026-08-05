@@ -4,9 +4,19 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { AppProvider } from "@/context/CartContext";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
 export const metadata: Metadata = {
-  title: "Aura Coffee | Premium Roasters",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "Aura Coffee | Premium Roasters",
+    template: "%s | Aura Coffee",
+  },
   description: "Experience the ultimate coffee journey. Premium beans, expert roasting.",
+  openGraph: {
+    siteName: "Aura Coffee",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
