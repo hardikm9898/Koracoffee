@@ -7,7 +7,7 @@ Path: `backend/` · Entry: `src/server.js` · Node.js + Express 4.21.2 + Mongoos
 - **Framework**: Express 4
 - **DB**: MongoDB via Mongoose 8 (`config/db.js`, reads `MONGODB_URI`)
 - **Auth**: `jsonwebtoken` 9 (JWT, `services/tokenService.js`)
-- **Uploads**: `multer` 1.4.4 (disk storage per resource; memory storage for CSV bulk upload) — legacy 1.x line, worth upgrading eventually
+- **Uploads**: `multer` 2.2.0 (disk storage per resource; memory storage for CSV bulk upload)
 - **Security middleware**: `helmet` (with CORP relaxed to `cross-origin` so `/uploads` images stay embeddable by both frontends) and `express-rate-limit` (general 300 req/15min on all `/api`, stricter 20 req/15min on the four OTP endpoints) — see `middlewares/rateLimiters.js`
 - **Logging**: `morgan` ("dev" format, per-request access log) + `pino`
   (`utils/logger.js`) for structured application/error logging — pretty in

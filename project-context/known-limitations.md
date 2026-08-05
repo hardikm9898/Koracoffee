@@ -371,6 +371,25 @@ might be relied upon elsewhere.
     (`front-end/admin-frontend/src/app/orders/page.tsx:555`,
     `order.discountAmount` possibly `undefined`) *was* fixed, since it
     blocked `next build` entirely — see `admin-order-management-flow.md`.
+44. ~~**Legacy/EOL major version of `multer`.**~~ **RESOLVED.** Upgraded
+    `1.4.4` → `2.2.0`. All 5 files using it (`uploadRoutes.js`,
+    `adminUploadRoutes.js`, `adminCategoryUploadRoutes.js`,
+    `reviewRoutes.js`, `adminProductRoutes.js`'s CSV bulk-upload) use only
+    the stable core API (`diskStorage`/`memoryStorage`, `.array()`/
+    `.single()`, `fileFilter`, `limits`), unchanged between 1.x and 2.x, so
+    no code changes were needed beyond the version bump. Verified live
+    against the real backend: all 5 upload endpoints tested with a real
+    PNG/CSV via actual `multipart/form-data` requests (not mocked) — public
+    product image, admin product image, admin category image, review
+    image, and bulk CSV all returned `201`/`200` with correctly-saved
+    files; the `fileFilter` rejection path (wrong mimetype) still correctly
+    rejects, still as a `500` rather than a `400` (that `fileFilter` calls
+    `callback(new Error(...))` — a plain `Error`, not an `ApiError`, so it
+    has no `statusCode` for `errorHandler` to read; unrelated to and
+    unaffected by this upgrade — see #36 for the broader multer-config
+    duplication this is one symptom of). All test uploads cleaned up
+    afterward. `npm audit`'s vulnerability count dropped from 9 to 6 as a
+    side effect.
 
 ## When to update this file
 
