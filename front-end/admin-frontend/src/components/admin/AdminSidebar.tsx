@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ChartColumn, ChevronRight, LogOut, MessageSquareText, Package, Settings, ShoppingCart, Store, Tag, Users } from "lucide-react";
+import { ChartColumn, ChevronRight, ListOrdered, LogOut, MessageSquareText, Package, Settings, ShoppingCart, Store, Tag, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logoutAdmin } from "@/lib/admin-auth";
 
@@ -15,6 +15,7 @@ const adminLinks = [
   { label: "Coupons", href: "/coupons", icon: Tag },
   { label: "Customers", href: "/customers", icon: Users },
   { label: "Reviews", href: "/reviews", icon: MessageSquareText },
+  { label: "Audit log", href: "/audit-log", icon: ListOrdered },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 

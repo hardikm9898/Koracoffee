@@ -168,3 +168,24 @@ also caught a real bug in the old backend's percent-off math (missing
 `/100`, meaning `AURA20` could never successfully complete an order).
 `backend/src/seeders/seedCoupons.js` re-seeds those three legacy codes
 (upsert, safe to re-run, never wipes other coupons).
+
+## AuditLog (`models/AuditLog.js`)
+
+| Field | Type | Notes |
+|---|---|---|
+| `admin` | ObjectId ref `User` | default `null`, indexed |
+| `adminPhone` | String | default `""` — denormalized for easy display without a populate |
+| `method` | String | required — HTTP method |
+| `path` | String | required — `req.originalUrl` |
+| `statusCode` | Number | required |
+| `success` | Boolean | required — `statusCode < 400` |
+
+Added 2026-08-05. Written by `middlewares/auditLog.js` (mounted once at
+`/api/admin`, applies to every admin router) for every mutating
+(non-`GET`) admin request — not written by any controller directly.
+Records *that* an admin action happened, not *whether it should have been
+allowed* — there is no roles/permissions model to check against yet (a
+product decision, not implemented — see
+[blocked-external-resources.md](blocked-external-resources.md)). Read-only
+via `GET /api/admin/audit-log`. Compound index on `createdAt` (descending)
+for the "most recent first" listing.

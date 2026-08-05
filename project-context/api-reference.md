@@ -132,6 +132,17 @@ Same CRUD shape as public categories, plus `POST /upload-image` (`adminCategoryU
 
 See [coupon-flow.md](feature-flows/coupon-flow.md) for full detail, including a real percent-math bug this replaced.
 
+## Admin Audit Log — `/api/admin/audit-log` (all `admin` auth)
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/?page=&limit=(≤200)` | every mutating admin action, most recent first — `adminPhone`, `method`, `path`, `statusCode`, `success`, `createdAt` |
+
+Entries are written by `middlewares/auditLog.js`, mounted once at
+`/api/admin` (applies to every admin router), not by this endpoint itself —
+this route is read-only. Records *that* an action happened, not whether it
+should have been allowed — see [known-limitations.md](known-limitations.md) #46.
+
 ## Admin Orders — `/api/admin/orders` (all `admin` auth)
 
 Reuses `orderController`'s `listOrders` (`GET /?page=&limit=&status=&search=`,

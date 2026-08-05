@@ -6,7 +6,7 @@ All mounted under `/api` in `backend/src/app.js`. See [api-reference.md](api-ref
 for the full endpoint list. Prefixes: `/auth`, `/users`, `/cart`, `/products`,
 `/categories`, `/orders`, `/reviews`, `/coupons`, `/admin/analytics`,
 `/admin/products`, `/admin/categories`, `/admin/orders`, `/admin/reviews`,
-`/admin/users`, `/admin/coupons`.
+`/admin/users`, `/admin/coupons`, `/admin/audit-log`.
 
 ## Customer frontend — `front-end/frontend/src/app/`
 
@@ -47,7 +47,8 @@ Root `layout.tsx` wraps everything in `AppProvider` (cart/favorites context) + p
 | `/customers` | `customers/page.tsx` | Client | Paginated customer list, segment cards |
 | `/customers/[userId]` | `customers/[userId]/page.tsx` | Client | Customer order history/spend |
 | `/reviews` | `reviews/page.tsx` | Client | Review moderation (pending/approved tabs) |
-| `/settings` | `settings/page.tsx` | Server | Static, non-functional |
+| `/audit-log` | `audit-log/page.tsx` | Client | Read-only, paginated list of every admin mutation (who/what/when/result) |
+| `/settings` | `settings/page.tsx` | Server | Static, non-functional (now shows an explicit "preview" notice) |
 
 Root `layout.tsx` wraps everything in `AdminAppShell` (sidebar+main, or centered login layout).
 

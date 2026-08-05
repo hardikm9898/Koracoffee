@@ -24,20 +24,21 @@ actually run — see [known-limitations.md](known-limitations.md) #42.
 app.js                  Express app + middleware chain
 server.js               boot (dotenv, connectDB, listen)
 config/db.js            Mongoose connection
-models/                 Address, Cart, Category, Coupon, Order, Product, Review, User
+models/                 Address, AuditLog, Cart, Category, Coupon, Order,
+                         Product, Review, User
 routes/                 authRoutes, userRoutes, cartRoutes, productRoutes,
                          categoryRoutes, orderRoutes, reviewRoutes, uploadRoutes,
-                         couponRoutes, adminCouponRoutes,
+                         couponRoutes, adminCouponRoutes, adminAuditLogRoutes,
                          admin{Analytics,Category,CategoryUpload,Order,Product,
                          Review,Upload,User}Routes
 controllers/            authController, userController, cartController,
                          productController, categoryController, orderController,
                          reviewController, uploadController, couponController,
-                         adminCouponController,
+                         adminCouponController, adminAuditLogController,
                          admin{Analytics,BulkProduct,Review,User}Controller
 services/                addressService, cartService, couponService, otpService,
                          otpSender, pricingService, tokenService
-middlewares/             authMiddleware, errorHandler, notFound, rateLimiters
+middlewares/             authMiddleware, auditLog, errorHandler, notFound, rateLimiters
 utils/                  ApiError, adminAuth, asyncHandler, cache (in-process
                          TTL cache — product/category list caching), logger (pino)
 public/uploads/          products/, categories/, reviews/ (served at /uploads)
@@ -89,13 +90,16 @@ Root-level stray files (not part of the app runtime): `bg_remover.py`,
 ```
 app/                     Next.js App Router pages — see routing.md
   coupons/                admin coupon management (list/create/edit/delete)
-components/admin/        AdminAppShell, AdminCard, AdminSidebar, AdminTopbar,
-                         ProductForm, RecentActivitiesCard, SalesOverviewCard
+  audit-log/               read-only view of every admin mutation
+components/admin/        AdminAppShell, AdminCard (exports SampleDataBadge),
+                         AdminSidebar, AdminTopbar, ProductForm,
+                         RecentActivitiesCard, SalesOverviewCard
 lib/                     admin-analytics-api, admin-api (shared fetch wrapper),
-                         admin-auth, admin-coupon-api, admin-data (static/mock
-                         content + legacy-named re-exports), admin-order-api,
-                         admin-product-api (also holds category CRUD),
-                         admin-review-api, admin-user-api, utils
+                         admin-audit-log-api, admin-auth, admin-coupon-api,
+                         admin-data (static/mock content + legacy-named
+                         re-exports), admin-order-api, admin-product-api
+                         (also holds category CRUD), admin-review-api,
+                         admin-user-api, utils
 proxy.ts                 Next.js middleware — auth route guard (not a CORS proxy)
 ```
 

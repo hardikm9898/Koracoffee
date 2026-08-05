@@ -23,6 +23,8 @@ const adminUploadRoutes = require("./routes/adminUploadRoutes");
 const adminCategoryUploadRoutes = require("./routes/adminCategoryUploadRoutes");
 const couponRoutes = require("./routes/couponRoutes");
 const adminCouponRoutes = require("./routes/adminCouponRoutes");
+const adminAuditLogRoutes = require("./routes/adminAuditLogRoutes");
+const auditLog = require("./middlewares/auditLog");
 const notFound = require("./middlewares/notFound");
 const errorHandler = require("./middlewares/errorHandler");
 
@@ -63,6 +65,11 @@ app.use(express.json());
 app.use(morgan("dev"));
 app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
 app.use("/api", apiLimiter);
+// Registered before the individual /api/admin/* routers below so it runs
+// first in the chain for every admin request — see middlewares/auditLog.js
+// for why that's safe even though req.user isn't set until those routers'
+// own protect/requireAdmin middleware runs afterward.
+app.use("/api/admin", auditLog);
 
 app.get("/api/health", (_req, res) => {
   res.status(200).json({
@@ -89,6 +96,7 @@ app.use("/api/admin/products/upload-image", adminUploadRoutes);
 app.use("/api/admin/categories/upload-image", adminCategoryUploadRoutes);
 app.use("/api/coupons", couponRoutes);
 app.use("/api/admin/coupons", adminCouponRoutes);
+app.use("/api/admin/audit-log", adminAuditLogRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

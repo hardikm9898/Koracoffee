@@ -14,6 +14,7 @@ lists see [database.md](database.md); for full routes see [api-reference.md](api
 | Cart | `Cart` | `cartService`, `pricingService` (price resolution) | `cartController` | `cartRoutes` | — (no admin cart view) |
 | Orders | `Order`, `Product` (stock) | `cartService` (post-order cleanup), `pricingService` (price resolution), `couponService` (discount resolution) | `orderController` | `orderRoutes` | `adminOrderRoutes` (reuses `orderController`) |
 | Coupons | `Coupon` | `couponService` (shared with Orders) | `couponController` (public preview/list) | `couponRoutes` | `adminCouponController` + `adminCouponRoutes` — separate files |
+| Audit log | `AuditLog` | — (written by `middlewares/auditLog.js`, not a controller) | — | — | `adminAuditLogController` (read-only) + `adminAuditLogRoutes` |
 | Reviews | `Review`, `Product` (existence check) | — | `reviewController` (create/list) | `reviewRoutes` | `adminReviewController` (approve/delete/list) — separate file |
 | Uploads | — | — | `uploadController` | `uploadRoutes` | `adminUploadRoutes`/`adminCategoryUploadRoutes` (reuse `uploadController`) |
 | Bulk product import | `Product`, `Category` | — | `adminBulkProductController` | — | `adminProductRoutes` (`/bulk-upload`) |
@@ -57,6 +58,7 @@ routers for these resources have no auth on mutating verbs).
 | `products/*` pages, `ProductForm.tsx` | `lib/admin-product-api.ts` |
 | `categories/page.tsx` | `lib/admin-product-api.ts` (category functions live here) |
 | `coupons/page.tsx` | `lib/admin-coupon-api.ts` (has its own dedicated file, unlike categories) |
+| `audit-log/page.tsx` | `lib/admin-audit-log-api.ts` |
 | `orders/*` pages | `lib/admin-order-api.ts` |
 | `customers/*` pages | `lib/admin-user-api.ts`, `lib/admin-data.ts` (static segments) |
 | `reviews/page.tsx` | `lib/admin-review-api.ts` |

@@ -3,7 +3,8 @@
 Path: `front-end/admin-frontend/` · Next.js 16.1.6 (App Router) · React 19.2.3 · TypeScript · Tailwind CSS v4
 
 "Aura Admin" — internal dashboard for managing products, categories,
-coupons, orders, customers, and reviews.
+coupons, orders, customers, and reviews, plus a read-only audit log of
+every admin action.
 
 ## Stack
 

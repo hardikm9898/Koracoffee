@@ -413,6 +413,33 @@ might be relied upon elsewhere.
     (4 tests) specifically proves invalidation-on-write, including the
     category-rename-affects-product-filters case, rather than relying on
     coincidental TTL timing.
+46. ~~**No admin roles/permissions, no action audit log.**~~ **PARTIALLY
+    RESOLVED — audit log only, roles deliberately not implemented.** New
+    `AuditLog` model + `middlewares/auditLog.js` (mounted once at
+    `/api/admin` in `app.js`, before the individual admin routers — safe
+    despite `req.user` not being set yet at that point in the chain,
+    because it only registers a `res.on("finish")` listener and calls
+    `next()` immediately; by the time `finish` actually fires, the
+    downstream `protect`/`requireAdmin` middleware has already populated
+    `req.user`) now records every mutating (`method !== "GET"`) admin
+    request: who (`adminPhone`), what (`method` + `path`), when, and
+    whether it succeeded (`statusCode`/`success`). Viewable, paginated, at
+    `GET /api/admin/audit-log` and the new `/audit-log` page in the admin
+    app (`AdminSidebar.tsx` nav link added). **Deliberately does not
+    implement roles/permissions** — see
+    [blocked-external-resources.md](blocked-external-resources.md): what
+    roles should exist and what each should be allowed to do is a product
+    decision, not something to invent unilaterally. All admins remain
+    equal (the `ADMIN_PHONE_NUMBERS` allowlist) — the audit log records
+    *what happened*, not *whether it should have been allowed*; the
+    `/audit-log` page says this explicitly. Covered by
+    `tests/auditLog.test.js` (4 tests: records a successful mutation,
+    records a failed one with `success:false`, does NOT record `GET`
+    requests, and the endpoint itself requires admin auth). Verified live
+    end-to-end against the real backend: created+deleted a real coupon via
+    the admin API, confirmed both actions appeared in the audit log with
+    the correct admin phone number, method, path, and status code; an
+    unauthenticated request to the audit log endpoint correctly got `401`.
 
 ## When to update this file
 
