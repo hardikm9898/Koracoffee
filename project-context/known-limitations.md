@@ -87,10 +87,29 @@ might be relied upon elsewhere.
    stock was successfully reserved. Verified live: a 2-item order where item
    A had stock and item B didn't correctly left item A's stock exactly
    where it started (not permanently short).
-9. **Address data duplication.** `User.addresses` (embedded, legacy) vs.
-   `Address` collection (canonical). `addressService.migrateEmbeddedAddresses`
-   copies on first read but nothing ever clears the embedded array — it's
-   permanently stale after the first migration.
+9. ~~**Address data duplication.**~~ **RESOLVED.** New
+   `seeders/backfillAddresses.js` (`npm run backfill:addresses`) migrates
+   any remaining embedded `User.addresses[]` into the `Address` collection
+   and then `$unset`s the field from every user document — run once
+   against the real dev database (found 0 users with embedded data there,
+   so it was a no-op on this DB, but exercised the real migration path).
+   The embedded field was then removed from `models/User.js` entirely, and
+   `addressService.migrateEmbeddedAddresses` was deleted (nothing left to
+   migrate from) — `getUserAddresses` now just queries `Address` directly.
+   Verified live end-to-end: login, create/list/delete address via the
+   real API all still work correctly post-cleanup.
+   **A separate, pre-existing bug was found (not fixed) while verifying
+   this**: `userController.validateAddressPayload` requires every field
+   (`name`, `phone`, `address`, `city`, `state`, `country`, `zip`) even on
+   `PATCH /api/users/me/addresses/:id` — a true partial update (e.g.
+   `{"city": "..."}`) fails with `400 "Address name is required"`. Not
+   fixed here because it's unrelated to the embedded-field cleanup this
+   item covers, and impact today is zero — both `checkout/page.tsx` and
+   `profile/page.tsx` already always submit the complete address form on
+   edit, client-validated first, so this never actually triggers in the
+   real app. Would bite any future API consumer that tries a genuine
+   partial PATCH (e.g. a quick "set as default" toggle without resending
+   the whole form).
 10. **`Order.itemStatus` sub-schema is defined but never used** anywhere in
     `orderController.js` — dead field, always empty.
 11. ~~**No cascade protection on delete.**~~ **RESOLVED.**

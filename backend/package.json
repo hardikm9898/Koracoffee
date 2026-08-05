@@ -8,6 +8,7 @@
     "start": "node src/server.js",
     "seed:products": "node src/seeders/seedProducts.js",
     "seed:coupons": "node src/seeders/seedCoupons.js",
+    "backfill:addresses": "node src/seeders/backfillAddresses.js",
     "test": "jest --runInBand"
   },
   "dependencies": {

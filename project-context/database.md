@@ -16,16 +16,14 @@ in several important cases, **loose string/number matching instead of a real ref
 | `otpCode` | String | default `null` |
 | `otpExpiresAt` | Date | default `null` |
 | `lastLoginAt` | Date | default `null` |
-| `addresses` | [embedded address] | default `[]` — **legacy**, see below |
 
 No `isAdmin`/`role` field exists. Admin status is computed at request time from
 an env allowlist — see [authentication.md](authentication.md).
 
-`addresses` is an embedded sub-document array (legacy path). The **canonical**
-address store is the standalone `Address` collection. `addressService.migrateEmbeddedAddresses`
-lazily copies embedded addresses into `Address` on first read, but nothing ever
-clears the embedded array afterward — it becomes stale/duplicate data. Never
-write new address logic against `User.addresses`; use `Address`.
+Addresses live **only** in the standalone `Address` collection (below). A
+legacy embedded `User.addresses[]` field existed until 2026-08-05, when it
+was backfilled into `Address` (`seeders/backfillAddresses.js`) and removed
+from the schema entirely — see [known-limitations.md](known-limitations.md) #9.
 
 ## Address (`models/Address.js`) — canonical address store
 

@@ -43,6 +43,10 @@ public/uploads/          products/, categories/, reviews/ (served at /uploads)
 data/productSeed.js      24 hardcoded coffee products
 seeders/seedProducts.js  wipes + reseeds Product/Category
 seeders/seedCoupons.js   upserts 3 legacy coupon codes (never wipes)
+seeders/backfillAddresses.js  one-time: migrates legacy embedded
+                         User.addresses[] into Address, then removes the
+                         field — already run against the dev DB, safe to
+                         re-run (idempotent)
 tests/                   jest + supertest integration tests (setup.js,
                          helpers.js, order.test.js, cart.test.js, auth.test.js,
                          coupon.test.js)

@@ -35,71 +35,10 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-const addressSchema = new mongoose.Schema(
-  {
-    label: {
-      type: String,
-      trim: true,
-      default: "Home",
-    },
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    phone: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    address: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    city: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    state: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    country: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    apartment: {
-      type: String,
-      trim: true,
-      default: "",
-    },
-    company: {
-      type: String,
-      trim: true,
-      default: "",
-    },
-    zip: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    isDefault: {
-      type: Boolean,
-      default: false,
-    },
-  },
-  { _id: true }
-);
-
-userSchema.add({
-  addresses: {
-    type: [addressSchema],
-    default: [],
-  },
-});
-
+// Addresses used to also be embedded directly on User (a legacy duplicate
+// of the standalone Address collection below). Removed 2026-08-05 after
+// backfilling any remaining embedded data into Address — see
+// seeders/backfillAddresses.js and services/addressService.js. Address is
+// now the only place addresses live; do not reintroduce an embedded field
+// here.
 module.exports = mongoose.model("User", userSchema);

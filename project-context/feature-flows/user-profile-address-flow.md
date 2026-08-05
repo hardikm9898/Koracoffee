@@ -24,11 +24,11 @@ and see their order history.
 
 ## Related Services
 
-`addressService.js` (`getUserAddresses`, `migrateEmbeddedAddresses`, `serializeAddress`)
+`addressService.js` (`getUserAddresses`, `serializeAddress`)
 
 ## Related Models
 
-`User`, `Address` (canonical store — see [database.md](../database.md) for the legacy `User.addresses` duplication note)
+`User`, `Address` (the only address store — a legacy embedded `User.addresses[]` field was backfilled and removed 2026-08-05, see [database.md](../database.md))
 
 ## Frontend Pages
 
@@ -60,15 +60,15 @@ via [admin-customer-management-flow.md](admin-customer-management-flow.md) (diff
 - Deleting the default address auto-promotes another remaining address to default (`refreshDefaultAddress`).
 - All address operations are scoped by `{ _id, user: user._id }` — solid
   ownership checks, no cross-user leakage.
-- Address reads (`getUserAddresses`) transparently migrate any legacy
-  `User.addresses` embedded entries into the `Address` collection on first
-  call if the collection is empty for that user.
-- **Order history caveat**: `GET /api/orders` is called from the profile page
-  with **no Authorization header** and returns all orders publicly (see
-  [known-limitations.md](../known-limitations.md) #6, #22) — this page's
-  "your order history" is not actually server-filtered to the logged-in user
-  in a verifiable way from the frontend code alone; treat this as suspect if
-  touching order-history-related work.
+- `getUserAddresses` just queries `Address` directly now — no more lazy
+  migration from an embedded field (removed 2026-08-05, see [database.md](../database.md)).
+- **A separate, pre-existing bug**: `validateAddressPayload` requires every
+  field even on `PATCH` (a true partial update fails with `400`). Not
+  triggered in practice — both this page and `checkout/page.tsx` always
+  submit the complete address form on edit. See [known-limitations.md](../known-limitations.md) #9.
+- `GET /api/orders` (order history) is now `protect`-gated and scoped to
+  the caller — see [checkout-order-flow.md](checkout-order-flow.md) and
+  [known-limitations.md](../known-limitations.md) #2, #6 (both resolved).
 
 ## Dependencies
 
@@ -90,17 +90,11 @@ front-end/frontend/src/lib/order-api.ts
 
 ## Common Mistakes
 
-- Writing new address logic against `User.addresses` (embedded) instead of
-  the `Address` collection — the embedded array is legacy/stale.
+- Looking for `User.addresses` (embedded) — it no longer exists; `Address` is the only store.
 - Assuming the commented-out "Command Center" block in `profile/page.tsx` is
   active UI — it's dead code left in source.
-- Assuming "Order History" is guaranteed to be scoped to the current user on
-  the backend — verify this before relying on it for anything security-sensitive.
-
 ## Future Extension Points
 
-- Fix `getOrders()` to actually filter by the authenticated user server-side
-  (requires adding `Order.user` — see [known-limitations.md](../known-limitations.md) #6).
 - Implement the "Secure Payment" and "Account Rituals" tabs, or remove them.
-- Either wire up "Exclusive Offers" to a real coupon system or remove the
-  non-functional "Lock In Reward" button.
+- ~~Either wire up "Exclusive Offers" to a real coupon system~~ **Done** — see [coupon-flow.md](coupon-flow.md).
+- Fix `validateAddressPayload` to support true partial updates on `PATCH` (see [known-limitations.md](../known-limitations.md) #9) if a future consumer needs it.
