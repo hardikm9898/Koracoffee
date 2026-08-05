@@ -113,8 +113,6 @@ front-end/frontend/src/lib/user-api.ts
 
 ## Common Mistakes
 
-- Assuming a failed order creation shows the user an error — currently it's
-  only `console.warn`ed; no visible failure/retry UI exists.
 - Assuming coupon codes are validated against a database — they're hardcoded
   in two separate places (backend controller + frontend page).
 - Assuming `advanceOrderStatus` and `updateOrderStatus` enforce the same
@@ -132,4 +130,4 @@ front-end/frontend/src/lib/user-api.ts
   If this deployment is ever migrated to a replica set, revisit whether
   wrapping the whole flow in a real transaction is worth the added complexity.
 - Add a dedicated order-confirmation route instead of an inline checkout state.
-- Add user-facing error handling for failed order submission.
+- ~~Add user-facing error handling for failed order submission.~~ **Done.**

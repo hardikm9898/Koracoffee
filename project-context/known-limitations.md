@@ -151,8 +151,17 @@ might be relied upon elsewhere.
 21. **Coupons are 100% client-side** — no backend validation.
 22. **`GET /orders` (order history) is called with no Authorization header**
     from `profile/page.tsx` — inconsistent with every other authenticated call.
-23. **Order-placement failures are silently swallowed** (`console.warn` only,
-    no user-facing error/retry UI).
+23. ~~**Order-placement failures are silently swallowed**~~ **RESOLVED.**
+    `checkout/page.tsx` now has an `orderError` state, set from the caught
+    error's message (or a generic fallback) in `processOrder()`'s catch
+    block, and rendered as a visible red banner above the step-navigation
+    buttons. `isProcessing` already reset via `finally`, so re-enabling the
+    "Complete Order" button and letting the user click it again *is* the
+    retry — no separate retry button was needed. Verified via a full
+    production build (`next build`) succeeding with no type/compile errors;
+    no browser-automation tool was available in this environment to click
+    through the actual failure path interactively, so this wasn't verified
+    in a live browser — only statically (types, lint, build, code review).
 24. **`/subscribe` is entirely simulated** (`setTimeout`, no backend call).
 25. **No shared API client module** — base URL + response-parsing logic is
     copy-pasted across 7 `lib/*.ts` files.

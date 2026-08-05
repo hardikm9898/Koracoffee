@@ -3,7 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Coffee, ShieldCheck, CreditCard, ChevronRight, CheckCircle2, ArrowLeft, Package, MapPin, Search } from "lucide-react";
+import { Coffee, ShieldCheck, CreditCard, ChevronRight, CheckCircle2, ArrowLeft, Package, MapPin, Search, AlertCircle } from "lucide-react";
 import { useAppContext } from "@/context/CartContext";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -27,6 +27,7 @@ export default function CheckoutPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [orderError, setOrderError] = useState<string | null>(null);
   const { width, height } = useWindowSize();
 
   const [formData, setFormData] = useState({
@@ -336,6 +337,7 @@ export default function CheckoutPage() {
 
   const processOrder = () => {
     setIsProcessing(true);
+    setOrderError(null);
 
     const shipping = 5.0;
     const tax = Math.round(cartTotal * 0.08 * 100) / 100;
@@ -378,6 +380,11 @@ export default function CheckoutPage() {
         setIsSuccess(true);
       } catch (error) {
         console.warn("Unable to save order to backend", error);
+        setOrderError(
+          error instanceof Error
+            ? error.message
+            : "We couldn't place your order. Please try again.",
+        );
       } finally {
         setIsProcessing(false);
       }
@@ -861,8 +868,18 @@ export default function CheckoutPage() {
              </AnimatePresence>
           </div>
 
+          {orderError && (
+            <div className="mt-8 flex items-start gap-3 rounded-2xl border border-red-500/30 bg-red-50 px-5 py-4 text-red-700">
+              <AlertCircle className="w-5 h-5 mt-0.5 shrink-0" />
+              <div>
+                <p className="font-bold">We couldn&apos;t place your order</p>
+                <p className="text-sm mt-1">{orderError} Please check your details and try again.</p>
+              </div>
+            </div>
+          )}
+
           <div className="flex justify-between items-center mt-12">
-            <button 
+            <button
               onClick={() => setCurrentStep(prev => Math.max(0, prev - 1))}
               className={cn(
                 "font-bold transition-all px-8 py-4 rounded-2xl text-base",
