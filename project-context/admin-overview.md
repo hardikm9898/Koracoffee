@@ -46,8 +46,7 @@ See [coding-patterns.md](coding-patterns.md).
   revenue/channels/fulfillment-queue are real API calls, but "Priority tasks",
   "Segment notes", and "Activity feed" panels are hardcoded arrays in
   `lib/admin-data.ts` styled identically to live panels.
-- **Customer edit/delete UI doesn't exist** even though `lib/admin-user-api.ts`
-  fully supports `updateUser`/`deleteUser`/`getUserById` — dead/unused exports.
+- ~~Customer edit/delete UI doesn't exist~~ **Fixed** — see [known-limitations.md](known-limitations.md) #30.
 - ~~Order list has no server-side pagination~~ **Fixed** — real server-side pagination/search/status-filter now, see [known-limitations.md](known-limitations.md) #31.
 - **Order detail page has no 404 guard** (`orders/[orderId]/page.tsx`) unlike
   the equivalent products page — a bad order ID likely crashes the page.

@@ -14,8 +14,8 @@ customer's order history and spend.
 - `GET /api/admin/users?page=&limit=&search=` (search by name or phone, 25/page)
 - `GET /api/admin/users/:userId`
 - `GET /api/admin/users/:userId/orders?limit=`
-- `PATCH /api/admin/users/:userId` (`name`, `phoneNumber`, `isVerified`) — **defined, not used by any page**
-- `DELETE /api/admin/users/:userId` — **defined, not used by any page**
+- `PATCH /api/admin/users/:userId` (`name`, `phoneNumber`, `isVerified`) — now used by `customers/[userId]/page.tsx`'s "Account" card
+- `DELETE /api/admin/users/:userId` — now used by the same card
 
 All `protect + requireAdmin`.
 
@@ -36,11 +36,11 @@ None directly — controller aggregates `Address` (per-user counts) and matches 
 - `app/customers/page.tsx` — paginated/searchable table (name, address count,
   last login, phone, joined date, verified badge), plus a hardcoded
   `customerSegments` panel (same static data reused on the dashboard, not
-  backend-driven). **No inline edit/delete UI** despite the backend and API
-  client fully supporting it.
-- `app/customers/[userId]/page.tsx` — read-only: total orders, total spend,
-  avg order value, purchase cadence (avg days between orders), full order
-  history table.
+  backend-driven). No inline edit/delete here — that's on the detail page.
+- `app/customers/[userId]/page.tsx` — an "Account" card (edit name/phone/
+  verified, delete customer, both wired to `updateUser`/`deleteUser`) above
+  the read-only stats: total orders, total spend, avg order value, purchase
+  cadence (avg days between orders), full order history table.
 
 ## Admin Pages
 
@@ -62,10 +62,10 @@ customer's own view of their orders is [user-profile-address-flow.md](user-profi
   grouped by `user`, joined in-memory (avoids N+1 queries).
 - `summarizeOrderCadence` computes average days between consecutive orders
   and the most recent order date for the customer-detail stat cards.
-- Admin **cannot** actually edit or delete a customer from the UI today, even
-  though `updateUser`/`deleteUser`/`getUserById` exist and are fully wired on
-  the frontend API-client side — this is an incomplete feature, not an
-  intentional read-only design (no UI affordance was ever built for it).
+- Deleting a customer does **not** cascade-delete their orders — `Order.user`
+  is left pointing at a now-nonexistent `User` (same pattern as any other
+  "orders outlive other data" case in this schema). Verified live:
+  update/delete both work correctly end-to-end against the real backend.
 
 ## Dependencies
 
@@ -91,15 +91,12 @@ front-end/admin-frontend/src/lib/admin-user-api.ts
   placed **before** `Order.user` existed — those still rely on the phone
   fallback and can miss orders placed with a different shipping phone.
   Orders placed going forward are unaffected by this.
-- Assuming there's an edit/delete customer UI to hook into — there isn't yet;
-  the API client functions exist but no page calls them.
 - Assuming `customerSegments` shown on this page reflects real backend
   segmentation — it's the same hardcoded array used on the dashboard.
 
 ## Future Extension Points
 
 - ~~Add a real `Order.user` ObjectId ref~~ **Done** — see above.
-- Build the edit/delete customer UI on top of the already-existing
-  `updateUser`/`deleteUser` API client functions, or remove them if not needed.
+- ~~Build the edit/delete customer UI~~ **Done** — see above.
 - Replace the hardcoded `customerSegments` panel with a real backend
   aggregation if customer segmentation becomes a real feature.

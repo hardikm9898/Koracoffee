@@ -2,10 +2,15 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import AdminCard from "@/components/admin/AdminCard";
 import AdminTopbar from "@/components/admin/AdminTopbar";
-import { getUserOrderHistory, type AdminUserOrderHistory } from "@/lib/admin-user-api";
+import {
+  getUserOrderHistory,
+  updateUser,
+  deleteUser,
+  type AdminUserOrderHistory,
+} from "@/lib/admin-user-api";
 import { cn } from "@/lib/utils";
 
 const formatMoney = (value: number) => {
@@ -16,10 +21,21 @@ const formatMoney = (value: number) => {
 export default function CustomerOrderHistoryPage() {
   const params = useParams<{ userId: string }>();
   const userId = params?.userId;
+  const router = useRouter();
 
   const [data, setData] = useState<AdminUserOrderHistory | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Wires up updateUser/deleteUser from admin-user-api.ts — both were
+  // already fully implemented and working against the backend, but no
+  // admin page ever called them, so there was no way to actually edit or
+  // delete a customer despite the API fully supporting it.
+  const [isEditingAccount, setIsEditingAccount] = useState(false);
+  const [accountDraft, setAccountDraft] = useState({ name: "", phoneNumber: "", isVerified: false });
+  const [accountSaving, setAccountSaving] = useState(false);
+  const [accountError, setAccountError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
@@ -31,6 +47,11 @@ export default function CustomerOrderHistoryPage() {
       .then((payload) => {
         if (!alive) return;
         setData(payload);
+        setAccountDraft({
+          name: payload.user.name,
+          phoneNumber: payload.user.phoneNumber,
+          isVerified: payload.user.isVerified,
+        });
       })
       .catch((err) => {
         if (!alive) return;
@@ -54,6 +75,48 @@ export default function CustomerOrderHistoryPage() {
     if ((avg as number) < 1) return "< 1 day";
     return `${avg} days`;
   }, [data?.summary.avgDaysBetweenOrders]);
+
+  const handleSaveAccount = async () => {
+    if (!userId) return;
+    if (!accountDraft.name.trim() || !accountDraft.phoneNumber.trim()) {
+      setAccountError("Name and phone number are required.");
+      return;
+    }
+
+    setAccountSaving(true);
+    setAccountError(null);
+    try {
+      const updated = await updateUser(userId, {
+        name: accountDraft.name.trim(),
+        phoneNumber: accountDraft.phoneNumber.trim(),
+        isVerified: accountDraft.isVerified,
+      });
+      setData((current) => (current ? { ...current, user: { ...current.user, ...updated } } : current));
+      setIsEditingAccount(false);
+    } catch (err) {
+      setAccountError(err instanceof Error ? err.message : "Unable to update customer.");
+    } finally {
+      setAccountSaving(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!userId) return;
+    const confirmed = window.confirm(
+      "Delete this customer account? This cannot be undone and does not delete their past orders.",
+    );
+    if (!confirmed) return;
+
+    setDeleting(true);
+    setAccountError(null);
+    try {
+      await deleteUser(userId);
+      router.push("/customers");
+    } catch (err) {
+      setAccountError(err instanceof Error ? err.message : "Unable to delete customer.");
+      setDeleting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -104,6 +167,102 @@ export default function CustomerOrderHistoryPage() {
         description="View individual customer purchase behavior and frequency."
         badge="CRM view"
       />
+
+      <AdminCard title="Account" eyebrow="Customer details">
+        {isEditingAccount ? (
+          <div className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="space-y-2 text-sm">
+                <span className="font-medium text-foreground">Name</span>
+                <input
+                  value={accountDraft.name}
+                  onChange={(event) => setAccountDraft((d) => ({ ...d, name: event.target.value }))}
+                  className="w-full rounded-3xl border border-black/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-emerald-900 focus:ring-4 focus:ring-emerald-100"
+                />
+              </label>
+              <label className="space-y-2 text-sm">
+                <span className="font-medium text-foreground">Phone number</span>
+                <input
+                  value={accountDraft.phoneNumber}
+                  onChange={(event) => setAccountDraft((d) => ({ ...d, phoneNumber: event.target.value }))}
+                  className="w-full rounded-3xl border border-black/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-emerald-900 focus:ring-4 focus:ring-emerald-100"
+                />
+              </label>
+            </div>
+            <label className="flex items-center gap-3 text-sm">
+              <input
+                type="checkbox"
+                checked={accountDraft.isVerified}
+                onChange={(event) => setAccountDraft((d) => ({ ...d, isVerified: event.target.checked }))}
+                className="h-4 w-4 rounded border-black/20"
+              />
+              <span className="font-medium text-foreground">Verified</span>
+            </label>
+            {accountError ? <p className="text-sm text-rose-700">{accountError}</p> : null}
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => void handleSaveAccount()}
+                disabled={accountSaving}
+                className="inline-flex items-center justify-center rounded-full bg-emerald-950 px-6 py-3 text-xs font-black uppercase tracking-[0.18em] text-white transition hover:bg-emerald-900 disabled:cursor-not-allowed disabled:bg-slate-300"
+              >
+                {accountSaving ? "Saving…" : "Save changes"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsEditingAccount(false);
+                  setAccountError(null);
+                  if (data) {
+                    setAccountDraft({
+                      name: data.user.name,
+                      phoneNumber: data.user.phoneNumber,
+                      isVerified: data.user.isVerified,
+                    });
+                  }
+                }}
+                disabled={accountSaving}
+                className="inline-flex items-center justify-center rounded-full border border-black/10 bg-white px-6 py-3 text-xs font-black uppercase tracking-[0.18em] text-foreground transition hover:border-rose-300 hover:text-rose-700 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-lg font-semibold text-foreground">{data.user.name}</p>
+              <p className="mt-1 text-sm text-muted">{data.user.phoneNumber}</p>
+              <span
+                className={cn(
+                  "mt-3 inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.16em]",
+                  data.user.isVerified ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700",
+                )}
+              >
+                {data.user.isVerified ? "Verified" : "Unverified"}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => setIsEditingAccount(true)}
+                className="inline-flex items-center justify-center rounded-full border border-black/10 bg-white px-6 py-3 text-xs font-black uppercase tracking-[0.18em] text-foreground transition hover:border-emerald-900 hover:text-emerald-900"
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleDeleteAccount()}
+                disabled={deleting}
+                className="inline-flex items-center justify-center rounded-full border border-rose-200 bg-rose-50 px-6 py-3 text-xs font-black uppercase tracking-[0.18em] text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed"
+              >
+                {deleting ? "Deleting…" : "Delete customer"}
+              </button>
+            </div>
+          </div>
+        )}
+        {!isEditingAccount && accountError ? <p className="mt-4 text-sm text-rose-700">{accountError}</p> : null}
+      </AdminCard>
 
       <div className="grid gap-4 lg:grid-cols-4">
         <AdminCard>

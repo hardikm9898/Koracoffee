@@ -214,8 +214,16 @@ might be relied upon elsewhere.
 28. **Settings page is entirely static/non-functional.**
 29. **Dashboard mixes real and hardcoded data with no visual distinction**
     ("Priority tasks", "Segment notes", "Activity feed" panels are static).
-30. **Customer edit/delete UI doesn't exist** despite full API support
-    (`updateUser`/`deleteUser`/`getUserById` defined but never called).
+30. ~~**Customer edit/delete UI doesn't exist**~~ **RESOLVED.** An "Account"
+    card was added to `customers/[userId]/page.tsx` — inline edit
+    (name/phone/verified) and a delete button, both wired to the
+    already-working `updateUser`/`deleteUser` API client functions.
+    Deleting a customer does **not** delete their past orders (`Order.user`
+    is left pointing at a now-nonexistent user; this matches how the rest
+    of the schema already handles orders outliving other data). Verified
+    live end-to-end against the real backend: created a throwaway customer
+    via the OTP flow, updated their name/verified status via the admin
+    endpoint, deleted them, confirmed a subsequent `GET` returns `404`.
 31. ~~**Order list has no server-side pagination**~~ **RESOLVED.**
     `orderController.listOrders` now supports `page`/`limit` (default 25,
     capped at 100) plus a `search` query param (regex across `orderCode`,
