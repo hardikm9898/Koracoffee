@@ -51,6 +51,7 @@ passwords, no email login) for both customers and admins.
 | "Which controller/service/model touches feature X?" | [module-map.md](module-map.md) |
 | "What bugs/risks/tech debt already exist?" | [known-limitations.md](known-limitations.md) — **check before 'fixing' something that might be a known issue** |
 | "What's blocked on an external account/credential/decision?" | [blocked-external-resources.md](blocked-external-resources.md) |
+| "How do I deploy/host this app?" | [deployment-aws.md](deployment-aws.md) |
 | "How does feature X work end-to-end (API → DB → UI)?" | [feature-flows/](feature-flows/) — one file per feature |
 
 ## Feature flows

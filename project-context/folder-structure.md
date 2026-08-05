@@ -5,6 +5,8 @@
 ```
 d:\hardik\coffee\
   .github/workflows/ci.yml  GitHub Actions: backend tests, both frontends' build
+  deploy/                   PM2 (ecosystem.config.js) + Nginx config templates
+                            for the AWS deployment — see deployment-aws.md
   backend/                  Express API
   front-end/
     frontend/                Customer storefront (Next.js)

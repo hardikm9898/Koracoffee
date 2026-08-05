@@ -29,6 +29,18 @@ const notFound = require("./middlewares/notFound");
 const errorHandler = require("./middlewares/errorHandler");
 
 const app = express();
+
+// Required once this app runs behind a reverse proxy (Nginx, ALB, etc.).
+// Without it, two things silently break: req.protocol/req.get("host") (used
+// to build absolute /uploads image URLs) always reports the proxy's local
+// connection instead of the real client's scheme, and express-rate-limit's
+// req.ip resolves to the proxy's own address for every request — collapsing
+// every visitor into one shared rate-limit bucket instead of limiting them
+// individually. `1` trusts exactly one hop (the proxy in front of this
+// process), which matches this deployment; only raise it if another proxy
+// is added in front of Nginx.
+app.set("trust proxy", 1);
+
 const allowedOrigins = [
   process.env.CLIENT_URL,
   ...(process.env.CLIENT_URLS || "")
