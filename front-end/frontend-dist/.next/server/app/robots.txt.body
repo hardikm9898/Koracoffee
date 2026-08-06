@@ -4,4 +4,4 @@ Disallow: /checkout
 Disallow: /profile
 Disallow: /cart
 
-Sitemap: http://localhost:3000/sitemap.xml
+Sitemap: https://kouracoffee.com/sitemap.xml
