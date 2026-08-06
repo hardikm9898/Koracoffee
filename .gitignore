@@ -48,3 +48,13 @@ backend/src/public/uploads/
 
 # Ignore local agent/session runtime state
 .claude/
+
+# Locally-built frontend deploy bundles ARE committed on purpose: the server
+# just `git pull`s and runs these instead of building on-box. Produced by
+# `npm run build:deploy` (see deploy/package-standalone.mjs). These
+# overrides must stay after the broad ignores above (node_modules, .next,
+# etc.) since they live inside these folders too.
+!/front-end/frontend-dist/
+!/front-end/frontend-dist/**
+!/front-end/admin-frontend-dist/
+!/front-end/admin-frontend-dist/**

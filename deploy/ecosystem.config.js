@@ -22,23 +22,28 @@ module.exports = {
     },
     {
       name: "aura-frontend",
-      cwd: "/home/ubuntu/aura-coffee/front-end/frontend",
-      script: "node_modules/.bin/next",
-      args: "start -p 3000",
+      // Built locally and committed — `npm run build:deploy` in
+      // front-end/frontend packages a self-contained server here (see
+      // deploy/package-standalone.mjs). NEXT_PUBLIC_* vars are baked in at
+      // that local build time, not read at runtime — rebuild+push after
+      // changing them. Server just needs `git pull` + `pm2 restart`, no
+      // npm install/build.
+      cwd: "/home/ubuntu/aura-coffee/front-end/frontend-dist",
+      script: "server.js",
       env: {
         NODE_ENV: "production",
+        PORT: 3000,
       },
-      // Must be built first: npm run build (reads .env.production for
-      // NEXT_PUBLIC_* vars, which are baked in at build time, not read at
-      // runtime — rebuild after changing them).
     },
     {
       name: "aura-admin-frontend",
-      cwd: "/home/ubuntu/aura-coffee/front-end/admin-frontend",
-      script: "node_modules/.bin/next",
-      args: "start -p 3001",
+      // Same deal — built locally via `npm run build:deploy` in
+      // front-end/admin-frontend.
+      cwd: "/home/ubuntu/aura-coffee/front-end/admin-frontend-dist",
+      script: "server.js",
       env: {
         NODE_ENV: "production",
+        PORT: 3001,
       },
     },
   ],

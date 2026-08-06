@@ -110,27 +110,29 @@ is wired in — see
 live without one, OTP login/signup will hard-fail for every user. Either
 wire up a provider first, or treat this as a soft-launch blocker.
 
-**`front-end/frontend/.env.production`**:
+**`front-end/frontend/.env.production`** (on your **laptop**, not the
+server — see "Building the frontends" below):
 ```
 NEXT_PUBLIC_API_BASE_URL=https://api.yourdomain.com/api
 NEXT_PUBLIC_SITE_URL=https://yourdomain.com
 ```
 
-**`front-end/admin-frontend/.env.production`**:
+**`front-end/admin-frontend/.env.production`** (also on your laptop):
 ```
 NEXT_PUBLIC_API_BASE_URL=https://api.yourdomain.com/api
 ```
 
 Next.js bakes `NEXT_PUBLIC_*` vars into the build at build time, not at
-runtime — if you ever change one, you must rebuild (`npm run build`), not
-just restart the process.
+runtime — if you ever change one, you must rebuild locally and push again
+(see below), not just restart the process.
 
-## 5. Install, build, and start with PM2
+## 5. Install the backend and start everything with PM2
+
+The frontends are **not** built on the server (see "Building the
+frontends" below) — only the backend needs `npm ci` here:
 
 ```bash
 cd ~/aura-coffee/backend && npm ci
-cd ~/aura-coffee/front-end/frontend && npm ci && npm run build
-cd ~/aura-coffee/front-end/admin-frontend && npm ci && npm run build
 
 cd ~/aura-coffee
 pm2 start deploy/ecosystem.config.js
@@ -141,6 +143,37 @@ pm2 startup   # run the command it prints, once, so PM2 restarts on reboot
 (`deploy/ecosystem.config.js` and `deploy/nginx-aura-coffee.conf.example`
 already exist in the repo — adjust the `cwd` paths in the PM2 file if you
 cloned somewhere other than `/home/ubuntu/aura-coffee`.)
+
+## Building the frontends (on your laptop, not the server)
+
+The Lightsail instance's smallest tier doesn't have the CPU/RAM to run
+`next build` for both frontends without grinding to a halt, so the build
+happens locally and only the finished, runnable output is pushed to
+GitHub. `next.config.ts` in both apps sets `output: "standalone"`, and
+`npm run build:deploy` (defined in both `package.json`s) runs `next build`
+then packages the result — via `deploy/package-standalone.mjs` — into a
+self-contained sibling folder that needs no `npm install` to run:
+
+```bash
+cd front-end/frontend && npm run build:deploy      # -> front-end/frontend-dist/
+cd ../admin-frontend && npm run build:deploy        # -> front-end/admin-frontend-dist/
+```
+
+Both `*-dist/` folders are committed to git (they're explicitly un-ignored
+in the root `.gitignore`, despite the broad `node_modules`/`.next` ignore
+rules) — that's the whole point, so the server can just `git pull` them.
+Commit and push both after building:
+
+```bash
+git add front-end/frontend-dist front-end/admin-frontend-dist
+git commit -m "Rebuild frontends"
+git push origin dev
+```
+
+`deploy/ecosystem.config.js` runs `node server.js` directly out of
+`front-end/frontend-dist` and `front-end/admin-frontend-dist` — not
+`next start` — so the server never runs `next build` or `npm install` for
+either frontend.
 
 ## 6. Nginx + HTTPS
 
@@ -173,11 +206,18 @@ DNS propagation can take anywhere from a few minutes to a few hours.
 
 ## Deploying updates later
 
+Backend changes: edit, commit, push, then on the server:
 ```bash
 cd ~/aura-coffee && git pull
 cd backend && npm ci && pm2 restart aura-backend
-cd ../front-end/frontend && npm ci && npm run build && pm2 restart aura-frontend
-cd ../admin-frontend && npm ci && npm run build && pm2 restart aura-admin-frontend
+```
+
+Frontend changes: build and push from your **laptop** first (see
+"Building the frontends" above), then on the server it's just a pull and
+restart — no `npm ci`/`npm run build` needed:
+```bash
+cd ~/aura-coffee && git pull
+pm2 restart aura-frontend aura-admin-frontend
 ```
 
 ## What this doesn't solve yet
