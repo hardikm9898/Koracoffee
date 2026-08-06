@@ -32,6 +32,21 @@ might be relied upon elsewhere.
    `NODE_ENV=production` until one is** — auth will hard-fail otherwise
    (intentional: fail loud, not silently insecure). `.env.example` now
    documents this in all three apps.
+   **Neither state is actually safe for real customer traffic right now**:
+   `NODE_ENV=production` without a provider breaks login/signup entirely
+   (including admin login — the admin dashboard becomes unreachable too,
+   since `requestAdminOtp` calls the same `sendOtp`); leaving `NODE_ENV`
+   off `"production"` on a live, publicly reachable site instead echoes
+   the real OTP directly in the API response (a dev convenience —
+   see `authController.js`), which on a live site means **anyone can
+   request an OTP for any phone number and read it straight from the
+   response** — trivial account takeover, not a theoretical risk. Decision
+   on which provider to use (MSG91/Twilio/etc.) explicitly deferred as of
+   2026-08-05 pending a soft launch focused on Razorpay's site-review
+   requirement rather than real customer logins — see
+   [blocked-external-resources.md](blocked-external-resources.md). Do not
+   promote/advertise login to real users, and do not leave this
+   configuration running past the review window it was intended for.
 5. ~~**Admin token storage contradicts its own UI copy.**~~ **RESOLVED.**
    `lib/admin-auth.ts` no longer writes the token to `localStorage` or a
    JS-writable cookie — the backend's httpOnly `admin_token` cookie (already
@@ -370,9 +385,26 @@ might be relied upon elsewhere.
     gap (see [feature-list.md](feature-list.md) / the original audit's
     Phase 1 monitoring item) — Sentry or an equivalent needs a real account
     to actually wire up, which wasn't available to do here.
-39. No `app.set('trust proxy', ...)` configured, yet absolute upload/review
-    image URLs are built from `req.protocol`/`req.get('host')` — wrong scheme
-    possible behind a reverse proxy.
+39. ~~**No `app.set('trust proxy', ...)` configured, yet absolute
+    upload/review image URLs are built from `req.protocol`/`req.get('host')`**~~
+    **RESOLVED.** `app.js` now sets `app.set("trust proxy", 1)` — added
+    while preparing the AWS deployment (see
+    [deployment-aws.md](deployment-aws.md)), where this app runs behind an
+    Nginx reverse proxy for the first time. This turned out to fix two
+    things at once, not just the one originally logged here: without it,
+    `req.protocol` behind Nginx always reports `http` regardless of the
+    real client's scheme (the mixed-content bug this item was originally
+    about), **and** `express-rate-limit`'s `req.ip` resolves to Nginx's own
+    address for every request, collapsing every visitor into one shared
+    rate-limit bucket instead of limiting each one individually — the
+    second issue wasn't caught by the original audit and would have caused
+    every user to start getting `429`s together after ~20 total OTP
+    requests site-wide. `1` trusts exactly one proxy hop, matching this
+    deployment (Nginx in front of the Node processes, which are not
+    directly reachable from the internet — see the Lightsail firewall
+    rules in `deployment-aws.md`). Backend's 42-test suite still passes
+    (rate limiting is already skipped in `NODE_ENV=test`, so this had
+    nothing to interact with there).
 40. `authMiddleware`'s `auth_token` cookie fallback is dead code — nothing
     ever sets a cookie by that name for regular users.
 41. ~~No `helmet`, no rate limiting anywhere.~~ **RESOLVED.** `app.js` now
@@ -395,12 +427,15 @@ might be relied upon elsewhere.
     #35a — plus a `node --check` syntax pass over every source file since
     the backend has no lint script configured yet), and `frontend`/
     `admin-frontend` jobs (`npm run lint` — non-blocking, see #43 below —
-    then `npm run build`, which is the real gate). **Not yet verified
-    end-to-end** — this repo has no git remote configured, so GitHub
-    Actions has never actually run this workflow; only verified locally
-    (YAML syntax validated with `js-yaml`, and every individual command the
-    workflow runs was executed locally and passed). Push to a GitHub remote
-    to see it run for real.
+    then `npm run build`, which is the real gate). Originally verified only
+    locally (no remote existed yet at the time). **Update as of 2026-08-05:
+    a remote (`origin` → `github.com/hardikm9898/Koracoffee.git`) now
+    exists, with at least one merged PR** — whether this workflow has
+    actually run and passed on GitHub itself hasn't been confirmed from
+    this environment (no `gh` CLI available here, and the Actions page
+    returned a 404 to an unauthenticated fetch, consistent with either a
+    private repo or the workflow simply not having triggered yet). Check
+    the Actions tab on GitHub directly to confirm.
 43. **Pre-existing lint errors in both frontends, unrelated to any fix in
     this session.** A `react-hooks/set-state-in-effect` pattern (calling
     `setLoading(true)`/`setError(null)` synchronously at the top of a

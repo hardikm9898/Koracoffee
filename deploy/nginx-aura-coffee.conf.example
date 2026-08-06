@@ -1,0 +1,64 @@
+# Nginx reverse-proxy config for the 3 PM2 processes, keyed by subdomain.
+# Replace every occurrence of yourdomain.com with your real GoDaddy domain,
+# then install:
+#   sudo cp deploy/nginx-aura-coffee.conf.example /etc/nginx/sites-available/aura-coffee
+#   sudo ln -s /etc/nginx/sites-available/aura-coffee /etc/nginx/sites-enabled/
+#   sudo nginx -t && sudo systemctl reload nginx
+#
+# Run this BEFORE certbot. Certbot (--nginx) will then edit this file in
+# place to add the listen 443/ssl_certificate lines for each server block —
+# don't hand-write the SSL directives yourself.
+
+# Customer storefront: yourdomain.com / www.yourdomain.com -> :3000
+server {
+    listen 80;
+    server_name yourdomain.com www.yourdomain.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+# Admin dashboard: admin.yourdomain.com -> :3001
+server {
+    listen 80;
+    server_name admin.yourdomain.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+# Backend API: api.yourdomain.com -> :5000
+server {
+    listen 80;
+    server_name api.yourdomain.com;
+
+    # Multer's upload limit is 2MB (see backend/src/utils/imageUpload.js) —
+    # keep Nginx's own cap comfortably above that so Nginx never rejects a
+    # request before Express gets a chance to.
+    client_max_body_size 5m;
+
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}

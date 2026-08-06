@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:deploy": "next build && node ../../deploy/package-standalone.mjs frontend-dist",
     "start": "next start",
     "lint": "eslint"
   },

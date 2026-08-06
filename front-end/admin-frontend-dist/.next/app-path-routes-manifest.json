@@ -1,0 +1,20 @@
+{
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/audit-log/page": "/audit-log",
+  "/categories/page": "/categories",
+  "/coupons/page": "/coupons",
+  "/customers/[userId]/page": "/customers/[userId]",
+  "/customers/page": "/customers",
+  "/login/page": "/login",
+  "/orders/[orderId]/page": "/orders/[orderId]",
+  "/orders/page": "/orders",
+  "/page": "/",
+  "/products/[productId]/edit/page": "/products/[productId]/edit",
+  "/products/[productId]/page": "/products/[productId]",
+  "/products/bulk-upload/page": "/products/bulk-upload",
+  "/products/new/page": "/products/new",
+  "/products/page": "/products",
+  "/reviews/page": "/reviews",
+  "/settings/page": "/settings"
+}

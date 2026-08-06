@@ -231,7 +231,7 @@ export default function CartPage() {
               Checkout <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
             </Link>
             <div className="flex items-center justify-center gap-2 mt-6 text-muted text-xs font-bold uppercase tracking-widest">
-               <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" /> Secure Stripe Payment
+               <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" /> Secure Payment
             </div>
           </div>
         </motion.div>

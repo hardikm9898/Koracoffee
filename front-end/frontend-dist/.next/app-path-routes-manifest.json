@@ -1,0 +1,23 @@
+{
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/about/page": "/about",
+  "/cart/page": "/cart",
+  "/checkout/page": "/checkout",
+  "/contact/page": "/contact",
+  "/faq/page": "/faq",
+  "/favicon.ico/route": "/favicon.ico",
+  "/favorites/page": "/favorites",
+  "/login/page": "/login",
+  "/offers/page": "/offers",
+  "/page": "/",
+  "/privacy/page": "/privacy",
+  "/profile/page": "/profile",
+  "/robots.txt/route": "/robots.txt",
+  "/shipping/page": "/shipping",
+  "/shop/[id]/page": "/shop/[id]",
+  "/shop/page": "/shop",
+  "/sitemap.xml/route": "/sitemap.xml",
+  "/subscribe/page": "/subscribe",
+  "/terms/page": "/terms"
+}

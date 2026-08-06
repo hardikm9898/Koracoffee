@@ -1,0 +1,20 @@
+{
+  "/_global-error/page": "app/_global-error/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/audit-log/page": "app/audit-log/page.js",
+  "/categories/page": "app/categories/page.js",
+  "/coupons/page": "app/coupons/page.js",
+  "/customers/[userId]/page": "app/customers/[userId]/page.js",
+  "/customers/page": "app/customers/page.js",
+  "/login/page": "app/login/page.js",
+  "/orders/[orderId]/page": "app/orders/[orderId]/page.js",
+  "/orders/page": "app/orders/page.js",
+  "/page": "app/page.js",
+  "/products/[productId]/edit/page": "app/products/[productId]/edit/page.js",
+  "/products/[productId]/page": "app/products/[productId]/page.js",
+  "/products/bulk-upload/page": "app/products/bulk-upload/page.js",
+  "/products/new/page": "app/products/new/page.js",
+  "/products/page": "app/products/page.js",
+  "/reviews/page": "app/reviews/page.js",
+  "/settings/page": "app/settings/page.js"
+}
