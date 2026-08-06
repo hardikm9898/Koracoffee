@@ -1,18 +1,22 @@
 // PM2 process definitions for all three Node processes on the server:
 // backend API, customer frontend, admin frontend. Deploy this file to the
-// server (e.g. /home/ubuntu/aura-coffee/deploy/ecosystem.config.js) and run:
+// server and run (from anywhere, e.g. the repo root):
 //   pm2 start deploy/ecosystem.config.js
 //   pm2 save
 //   pm2 startup   (then run the command it prints, once, so PM2 survives reboots)
 //
-// Paths below assume the repo is cloned to /home/ubuntu/aura-coffee — adjust
-// `cwd` for all three apps if you clone somewhere else.
+// `cwd` is derived from this file's own location (__dirname), so it works
+// no matter where the repo is cloned on the server.
+
+const path = require("path");
+
+const repoRoot = path.resolve(__dirname, "..");
 
 module.exports = {
   apps: [
     {
       name: "aura-backend",
-      cwd: "/home/ubuntu/aura-coffee/backend",
+      cwd: path.join(repoRoot, "backend"),
       script: "src/server.js",
       env: {
         NODE_ENV: "production",
@@ -28,7 +32,7 @@ module.exports = {
       // that local build time, not read at runtime — rebuild+push after
       // changing them. Server just needs `git pull` + `pm2 restart`, no
       // npm install/build.
-      cwd: "/home/ubuntu/aura-coffee/front-end/frontend-dist",
+      cwd: path.join(repoRoot, "front-end", "frontend-dist"),
       script: "server.js",
       env: {
         NODE_ENV: "production",
@@ -39,7 +43,7 @@ module.exports = {
       name: "aura-admin-frontend",
       // Same deal — built locally via `npm run build:deploy` in
       // front-end/admin-frontend.
-      cwd: "/home/ubuntu/aura-coffee/front-end/admin-frontend-dist",
+      cwd: path.join(repoRoot, "front-end", "admin-frontend-dist"),
       script: "server.js",
       env: {
         NODE_ENV: "production",
