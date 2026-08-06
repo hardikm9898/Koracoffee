@@ -73,7 +73,7 @@ export default function AdminSidebar() {
             );
           })}
         </nav>
-
+{/* 
         <div className="mt-6 rounded-[1.4rem] border border-primary/15 bg-primary/8 p-4">
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">Shared backend</p>
           <p className="mt-2 text-sm leading-6 text-muted">
@@ -83,7 +83,7 @@ export default function AdminSidebar() {
             <Store className="h-4 w-4" />
             Backend: `../backend`
           </div>
-        </div>
+        </div> */}
 
         <div className="mt-6 rounded-[1.4rem] border border-black/6 bg-white/80 p-4 lg:mt-auto">
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted">On duty</p>
