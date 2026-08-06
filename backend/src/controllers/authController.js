@@ -58,9 +58,9 @@ const getAdminCookieOptions = () => {
     maxAge: 7 * 24 * 60 * 60 * 1000,
   };
 
-  // if (process.env.ADMIN_COOKIE_DOMAIN) {
-  //   cookieOptions.domain = process.env.ADMIN_COOKIE_DOMAIN;
-  // }
+  if (process.env.ADMIN_COOKIE_DOMAIN) {
+    cookieOptions.domain = process.env.ADMIN_COOKIE_DOMAIN;
+  }
 
   return cookieOptions;
 };
