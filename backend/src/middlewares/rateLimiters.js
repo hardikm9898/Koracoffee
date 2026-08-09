@@ -17,6 +17,20 @@ const isTestEnv = process.env.NODE_ENV === "test";
 // leave a real deployment unprotected.
 const isDevEnv = process.env.NODE_ENV === "development";
 
+// express-rate-limit throws (not just warns) when it sees an X-Forwarded-For
+// header whose shape doesn't match what it expects from `trust proxy`'s hop
+// count — and that throw is uncaught here, which crashes the whole process.
+// Verified live in production (2026-08-09): with `app.set("trust proxy", 1)`
+// already correctly configured for this deployment's single Nginx hop (a
+// direct request with one X-Forwarded-For value behaves correctly), real
+// traffic was still crash-looping the backend on this check dozens of times
+// a minute. This is exactly the known false-positive the library's own docs
+// (linked in the error) document an explicit opt-out for — `req.ip` still
+// resolves correctly via `trust proxy`, this only stops the separate,
+// stricter shape-of-the-header validation from taking the process down over
+// it. See https://express-rate-limit.github.io/ERR_ERL_UNEXPECTED_X_FORWARDED_FOR/
+const disableXForwardedForValidation = { validate: { xForwardedForHeader: false } };
+
 // Applied to every /api route. Generous enough not to interfere with normal
 // browsing/checkout traffic, but stops unbounded scripted abuse.
 const apiLimiter = rateLimit({
@@ -25,6 +39,7 @@ const apiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skip: () => isTestEnv || isDevEnv,
+  ...disableXForwardedForValidation,
   message: { success: false, message: "Too many requests. Please try again later." },
 });
 
@@ -39,6 +54,7 @@ const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skip: () => isTestEnv || isDevEnv,
+  ...disableXForwardedForValidation,
   message: { success: false, message: "Too many auth attempts. Please try again later." },
 });
 
