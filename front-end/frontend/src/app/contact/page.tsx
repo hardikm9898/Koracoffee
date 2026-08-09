@@ -109,11 +109,11 @@ export default function ContactPage() {
           <div className="mt-6 grid gap-3">
             <div className="rounded-[1.4rem] border border-black/6 bg-coffee-light/20 p-4">
               <p className="flex items-center gap-2 font-semibold text-foreground"><Mail className="h-4 w-4 text-primary" /> Email</p>
-              <p className="mt-2 text-sm leading-6 text-muted">support@auracoffee.example</p>
+              <p className="mt-2 text-sm leading-6 text-muted">infokouracoffee@gmail.com</p>
             </div>
             <div className="rounded-[1.4rem] border border-black/6 bg-coffee-light/20 p-4">
               <p className="flex items-center gap-2 font-semibold text-foreground"><Phone className="h-4 w-4 text-primary" /> Phone</p>
-              <p className="mt-2 text-sm leading-6 text-muted">+91 98765 43210</p>
+              <p className="mt-2 text-sm leading-6 text-muted">+91 96877 61747</p>
             </div>
             <div className="rounded-[1.4rem] border border-black/6 bg-coffee-light/20 p-4">
               <p className="flex items-center gap-2 font-semibold text-foreground"><Timer className="h-4 w-4 text-primary" /> Hours</p>
@@ -121,7 +121,7 @@ export default function ContactPage() {
             </div>
             <div className="rounded-[1.4rem] border border-black/6 bg-coffee-light/20 p-4">
               <p className="flex items-center gap-2 font-semibold text-foreground"><MapPin className="h-4 w-4 text-primary" /> Roastery</p>
-              <p className="mt-2 text-sm leading-6 text-muted">Aura Coffee Roasters, Ahmedabad, Gujarat, India</p>
+              <p className="mt-2 text-sm leading-6 text-muted">Shop-104, FF Sun Way Residency, Opp. Shaj Residency, Nr. Nikol Lake, Nikol, Ahmedabad-382360</p>
             </div>
             <div className="rounded-[1.4rem] border border-black/6 bg-coffee-light/20 p-4">
               <p className="flex items-center gap-2 font-semibold text-foreground"><MessageCircle className="h-4 w-4 text-primary" /> Order issues</p>

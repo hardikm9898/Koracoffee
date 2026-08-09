@@ -24,7 +24,7 @@ export default function AboutPage() {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="text-5xl md:text-7xl lg:text-8xl font-serif font-bold leading-tight mb-8"
           >
-            Crafting the <span className="gradient-text italic">Aura</span> of Tomorrow
+            Crafting the <span className="gradient-text italic">Koura</span> of Tomorrow
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 30 }}
@@ -32,7 +32,7 @@ export default function AboutPage() {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="text-lg md:text-xl text-muted max-w-2xl mx-auto leading-relaxed"
           >
-            Founded in 2024, Aura Coffee was born from a simple obsession: to redefine the artisanal experience. From the high altitudes of the Himalayas to the volcanic soils of Colombia, we source the impossible.
+            Founded in 2024, Koura Coffee was born from a simple obsession: to redefine the artisanal experience. From the high altitudes of the Himalayas to the volcanic soils of Colombia, we source the impossible.
           </motion.p>
         </div>
 

@@ -159,15 +159,19 @@ export default function Navbar() {
         >
           {/* Logo */}
           <div className="flex items-center gap-2">
-            <Link href="/" className="flex items-center h-14">
+            <Link href="/" className="flex h-14 items-center gap-2.5">
               <Image
-                src="/logo/KAOURA-LOGO.svg"
-                alt="Koura logo"
-                width={160}
-                height={56}
+                src="/logo/koura-mark.png"
+                alt="Koura Coffee"
+                width={116}
+                height={110}
                 priority
-                className="h-14 w-auto object-contain"
+                className="h-10 w-auto object-contain sm:h-11"
               />
+              <span className="flex flex-col leading-none">
+                <span className="text-lg font-black tracking-[0.06em] text-foreground sm:text-xl">KOURA</span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.35em] text-primary sm:text-[11px]">Coffee</span>
+              </span>
             </Link>
           </div>
 
@@ -437,12 +441,16 @@ export default function Navbar() {
                     className="flex items-center gap-2"
                   >
                     <Image
-                      src="/logo/koura-logo.png"
-                      alt="Koura logo"
-                      width={120}
-                      height={36}
-                      className="h-auto w-[120px] object-contain"
+                      src="/logo/koura-mark.png"
+                      alt="Koura Coffee"
+                      width={116}
+                      height={110}
+                      className="h-9 w-auto object-contain"
                     />
+                    <span className="flex flex-col leading-none">
+                      <span className="text-base font-black tracking-[0.06em] text-foreground">KOURA</span>
+                      <span className="text-[9px] font-bold uppercase tracking-[0.3em] text-primary">Coffee</span>
+                    </span>
                   </Link>
                   <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted">
                     Navigation
@@ -537,7 +545,7 @@ export default function Navbar() {
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="inline-flex w-full items-center justify-center gap-3 rounded-[1.15rem] bg-primary px-5 py-4 text-center text-xs font-black uppercase tracking-[0.18em] text-white shadow-lg"
                 >
-                  Join Aura Club <ArrowRight className="h-4 w-4" />
+                  Join Koura Club <ArrowRight className="h-4 w-4" />
                 </Link>
               </div>
             </motion.div>

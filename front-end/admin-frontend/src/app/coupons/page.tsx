@@ -193,7 +193,7 @@ export default function CouponsPage() {
                 <input
                   value={newCoupon.code}
                   onChange={(event) => setNewCoupon((c) => ({ ...c, code: event.target.value }))}
-                  placeholder="AURA20"
+                  placeholder="KOURA20"
                   className="w-full rounded-3xl border border-black/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-emerald-900 focus:ring-4 focus:ring-emerald-100"
                 />
               </label>

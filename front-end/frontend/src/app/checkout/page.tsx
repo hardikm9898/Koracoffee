@@ -776,7 +776,7 @@ export default function CheckoutPage() {
                            <div className="w-14 h-10 bg-[#C69C6D]/20 rounded-lg flex items-center justify-center border border-white/10">
                               <div className="w-10 h-7 bg-[#C69C6D]/40 rounded-sm" />
                            </div>
-                           <span className="text-xl font-black italic tracking-widest text-[#C69C6D]">AURA</span>
+                           <span className="text-xl font-black italic tracking-widest text-[#C69C6D]">KOURA</span>
                          </div>
                          <div>
                             <p className="text-white/30 text-[10px] mb-1.5 uppercase tracking-widest font-black">Secure Payment</p>

@@ -9,7 +9,7 @@ export default function TermsPage() {
           Terms & conditions
         </h1>
         <p className="mt-4 text-sm leading-7 text-muted md:text-base">
-          These terms explain how orders, accounts, offers, shipping, returns, and website use work at Aura Coffee Roasters. By browsing our store or placing an order, you agree to these terms.
+          These terms explain how orders, accounts, offers, shipping, returns, and website use work at Koura Coffee Roasters. By browsing our store or placing an order, you agree to these terms.
         </p>
         <p className="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-muted">
           Last updated: July 27, 2026

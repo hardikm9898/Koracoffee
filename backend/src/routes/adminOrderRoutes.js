@@ -6,6 +6,7 @@ const {
   getOrderById,
   updateOrderStatus,
   advanceOrderStatus,
+  getPackingSlip,
 } = require("../controllers/orderController");
 
 const router = express.Router();
@@ -14,6 +15,7 @@ router.use(protect, requireAdmin);
 
 router.get("/", listOrders);
 router.get("/:orderId", getOrderById);
+router.get("/:orderId/packing-slip", getPackingSlip);
 router.patch("/:orderId", updateOrderStatus);
 router.post("/:orderId/advance", advanceOrderStatus);
 

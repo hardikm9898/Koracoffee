@@ -142,7 +142,7 @@ export default function OffersPage() {
                 <Sparkles className="w-10 h-10 text-primary group-hover:text-white" />
               </div>
               <div>
-                <h3 className="text-2xl font-serif font-bold text-foreground mb-1">Aura Club Rewards</h3>
+                <h3 className="text-2xl font-serif font-bold text-foreground mb-1">Koura Club Rewards</h3>
                 <p className="text-muted text-sm">Earn 2x points on all spice and tea purchases this weekend.</p>
               </div>
            </motion.div>
@@ -191,7 +191,7 @@ export default function OffersPage() {
 
       <div className="mt-24 p-12 glass rounded-[3rem] border border-black/5 bg-coffee-light/10 text-center">
          <Star className="w-12 h-12 text-primary/40 mx-auto mb-6" />
-         <h3 className="text-3xl font-serif font-bold mb-4 italic">Exclusive Perks for Aura Club Members</h3>
+         <h3 className="text-3xl font-serif font-bold mb-4 italic">Exclusive Perks for Koura Club Members</h3>
          <p className="text-muted mb-8 max-w-xl mx-auto">Join our elite community and get early access to nano-lots, private cupping events, and complimentary shipping on all orders.</p>
          <Link href="/subscribe" className="bg-primary text-white px-10 py-3.5 rounded-xl font-bold hover:bg-foreground transition-all shadow-lg">Become a Member</Link>
       </div>

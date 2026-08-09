@@ -9,7 +9,7 @@ export default function PrivacyPage() {
           Privacy policy
         </h1>
         <p className="mt-4 text-sm leading-7 text-muted md:text-base">
-          At Aura Coffee Roasters, privacy is treated with the same care as sourcing, roasting, and packing your order. This policy explains what we collect, why we collect it, and how we protect your information when you shop coffee, tea, spices, dry fruits, or gift products with us.
+          At Koura Coffee Roasters, privacy is treated with the same care as sourcing, roasting, and packing your order. This policy explains what we collect, why we collect it, and how we protect your information when you shop coffee, tea, spices, dry fruits, or gift products with us.
         </p>
         <p className="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-muted">
           Last updated: July 27, 2026

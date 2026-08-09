@@ -380,7 +380,7 @@ export default async function Home() {
                   <div className="w-20 h-20 rounded-full border border-white/20 flex items-center justify-center backdrop-blur-md bg-white/5 mb-4 animate-[bounce_4s_infinite]">
                     <Coffee className="w-8 h-8 text-primary shadow-glow" />
                   </div>
-                  <p className="text-white font-bold tracking-widest uppercase text-xs">Aura Brewing Ritual</p>
+                  <p className="text-white font-bold tracking-widest uppercase text-xs">Koura Brewing Ritual</p>
                 </div>
               </div>
             </ScrollAnimation>
@@ -401,7 +401,7 @@ export default async function Home() {
               <div className="max-w-2xl">
                 <h3 className="text-3xl md:text-5xl font-bold mb-4 text-foreground">Never Run Out of <span className="italic">Magic</span></h3>
                 <p className="text-foreground/80 text-lg mb-8">
-                  Join the Aura Club. Get freshly roasted beans delivered to your door every month. Save 15% and unlock exclusive micro-lots.
+                  Join the Koura Club. Get freshly roasted beans delivered to your door every month. Save 15% and unlock exclusive micro-lots.
                 </p>
                 <button className="bg-white text-primary px-8 py-4 rounded-xl font-bold hover:bg-white/90 transition-colors shadow-2xl flex items-center gap-2 group">
                   Start Subscription <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -434,7 +434,7 @@ export default async function Home() {
               {[1, 2, 3, 4, 5].map(i => <Star key={i} className="w-6 h-6 fill-primary text-primary" />)}
             </div>
             <h3 className="text-2xl md:text-4xl font-medium leading-relaxed mb-8 italic text-foreground">
-              &quot;Aura Coffee didn&apos;t just meet my expectations; they redefined what I thought coffee could taste like. The shipping was fast, the unboxing experience was premium, and the taste is truly next-level.&quot;
+              &quot;Koura Coffee didn&apos;t just meet my expectations; they redefined what I thought coffee could taste like. The shipping was fast, the unboxing experience was premium, and the taste is truly next-level.&quot;
             </h3>
             <div>
               <p className="text-primary font-bold text-lg">Eleanor V.</p>

@@ -143,7 +143,7 @@ export default function LoginPage() {
 
             <div className="mt-6 max-w-2xl sm:mt-8">
               <h1 className="font-serif text-[2rem] font-semibold leading-[1.05] text-white sm:text-[2.6rem] md:text-[3.15rem] lg:text-[3.7rem]">
-                Welcome back to Aura.
+                Welcome back to Koura.
               </h1>
               <p className="mt-4 max-w-xl text-sm leading-6 text-white/72 sm:text-[15px] sm:leading-7">
                 Sign in with your mobile number and we&apos;ll verify your account with a

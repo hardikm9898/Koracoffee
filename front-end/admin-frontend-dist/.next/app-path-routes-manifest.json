@@ -1,12 +1,18 @@
 {
   "/_global-error/page": "/_global-error",
   "/_not-found/page": "/_not-found",
+  "/apple-icon.png/route": "/apple-icon.png",
   "/audit-log/page": "/audit-log",
   "/categories/page": "/categories",
   "/coupons/page": "/coupons",
   "/customers/[userId]/page": "/customers/[userId]",
   "/customers/page": "/customers",
+  "/expenses/page": "/expenses",
+  "/favicon.ico/route": "/favicon.ico",
+  "/inventory/ledger/page": "/inventory/ledger",
+  "/inventory/page": "/inventory",
   "/login/page": "/login",
+  "/orders/[orderId]/packing-slip/page": "/orders/[orderId]/packing-slip",
   "/orders/[orderId]/page": "/orders/[orderId]",
   "/orders/page": "/orders",
   "/page": "/",
@@ -15,6 +21,10 @@
   "/products/bulk-upload/page": "/products/bulk-upload",
   "/products/new/page": "/products/new",
   "/products/page": "/products",
+  "/purchases/page": "/purchases",
+  "/recipes/page": "/recipes",
+  "/reports/page": "/reports",
   "/reviews/page": "/reviews",
-  "/settings/page": "/settings"
+  "/settings/page": "/settings",
+  "/suppliers/page": "/suppliers"
 }

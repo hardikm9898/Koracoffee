@@ -21,7 +21,7 @@ import { getActiveCoupons, type CouponRecord } from "@/lib/coupon-api";
 const ORDERS = [
   {
     id: 89,
-    orderCode: "AURA-2024-0089",
+    orderCode: "KOURA-2024-0089",
     createdAt: "2024-09-20T09:42:00.000Z",
     updatedAt: "2024-09-20T11:30:00.000Z",
     status: "Roasting",
@@ -35,7 +35,7 @@ const ORDERS = [
       { productId: 2, name: "Colombian Supremo", variant: "Medium Grind / 250g", quantity: 1, price: 20, image: "/products/kashmiri-saffron.png" },
     ],
     shipping: {
-      name: "Aura Member",
+      name: "Koura Member",
       email: "customer@example.com",
       phone: "+91 98765 43210",
       address: "123 Coffee Bean Way",
@@ -45,7 +45,7 @@ const ORDERS = [
   },
   {
     id: 42,
-    orderCode: "AURA-2024-0042",
+    orderCode: "KOURA-2024-0042",
     createdAt: "2024-09-12T10:15:00.000Z",
     updatedAt: "2024-09-15T16:20:00.000Z",
     status: "Delivered",
@@ -58,7 +58,7 @@ const ORDERS = [
       { productId: 3, name: "Ethiopian Yirgacheffe", variant: "Whole Bean / 250g", quantity: 1, price: 23, image: "/products/himalayan-oolong.png" },
     ],
     shipping: {
-      name: "Aura Member",
+      name: "Koura Member",
       email: "customer@example.com",
       phone: "+91 98765 43210",
       address: "123 Coffee Bean Way",
@@ -248,7 +248,7 @@ const OrderTimeline = ({ order }: { order: ReturnType<typeof normalizeOrderEntry
         <div className="relative h-40 overflow-hidden rounded-[1.35rem] border border-black/6 bg-coffee-light/30 md:h-full md:min-h-[170px]">
           <Image
             src={imageSrc}
-            alt={leadItem?.name || "Aura product"}
+            alt={leadItem?.name || "Koura product"}
             fill
             sizes="(max-width: 768px) 100vw, 150px"
             className="object-contain p-4"
@@ -290,7 +290,7 @@ const OrderTimeline = ({ order }: { order: ReturnType<typeof normalizeOrderEntry
           <div className="mt-5 rounded-[1.35rem] border border-black/6 bg-coffee-light/20 p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
-                <p className="truncate font-semibold text-foreground">{leadItem?.name || "Aura coffee order"}</p>
+                <p className="truncate font-semibold text-foreground">{leadItem?.name || "Koura coffee order"}</p>
                 <p className="mt-1 text-sm text-muted">{leadItem?.variant || "Freshly packed"} {leadItem ? `x ${leadItem.quantity}` : ""}</p>
               </div>
               <p className="text-sm font-semibold text-primary">{order.eta}</p>
@@ -653,7 +653,7 @@ export default function ProfilePage() {
 
           {activeTab === "coupons" && (
             <div className="space-y-8">
-              <h2 className="text-3xl font-serif font-bold mb-8 text-foreground">Aura <span className="gradient-text italic">Benefits</span></h2>
+              <h2 className="text-3xl font-serif font-bold mb-8 text-foreground">Koura <span className="gradient-text italic">Benefits</span></h2>
               {couponsLoading ? (
                 <p className="text-sm text-muted">Loading offers…</p>
               ) : coupons.length === 0 ? (
@@ -803,7 +803,7 @@ export default function ProfilePage() {
                         value={addressForm.company || ""}
                         onChange={(event) => handleAddressFormUpdate("company", event.target.value)}
                         className="mt-2 w-full rounded-2xl border border-black/10 bg-white/90 px-4 py-3 text-sm outline-none"
-                        placeholder="Aura Coffee HQ"
+                        placeholder="Koura Coffee HQ"
                       />
                     </label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

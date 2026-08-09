@@ -9,12 +9,12 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Aura Coffee | Premium Roasters",
-    template: "%s | Aura Coffee",
+    default: "Koura Coffee | Premium Roasters",
+    template: "%s | Koura Coffee",
   },
   description: "Experience the ultimate coffee journey. Premium beans, expert roasting.",
   openGraph: {
-    siteName: "Aura Coffee",
+    siteName: "Koura Coffee",
     type: "website",
   },
 };

@@ -92,7 +92,7 @@ export default function SubscribePage() {
           transition={{ delay: 0.2 }}
           className="text-4xl md:text-7xl font-serif font-bold mb-6 text-foreground"
         >
-          The <span className="gradient-text italic">Aura Club</span>
+          The <span className="gradient-text italic">Koura Club</span>
         </motion.h1>
 
         <motion.p 
@@ -203,7 +203,7 @@ export default function SubscribePage() {
                        )}>
                            <Sparkles className="w-8 h-8" />
                        </div>
-                       <h3 className="text-3xl font-serif font-bold text-foreground mb-4">Aura AI Curated</h3>
+                       <h3 className="text-3xl font-serif font-bold text-foreground mb-4">Koura AI Curated</h3>
                        <p className={cn("text-base leading-relaxed font-medium transition-colors", planType === "curated" ? "text-foreground" : "text-muted")}>
                           Our algorithm analyzes your sensory preferences to ship a rotation of rare nano-lots matched to your taste profile.
                        </p>
@@ -347,7 +347,7 @@ export default function SubscribePage() {
                           </div>
                           <div>
                              <h3 className="text-2xl font-serif font-bold text-foreground">
-                               {planType === "curated" ? "Aura AI Curator Match" : "Artisan Custom Selection"}
+                               {planType === "curated" ? "Koura AI Curator Match" : "Artisan Custom Selection"}
                              </h3>
                              <p className="font-bold text-[10px] uppercase tracking-widest text-primary mt-1">Full Member Access Activated</p>
                           </div>

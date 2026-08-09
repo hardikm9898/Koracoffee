@@ -1,10 +1,19 @@
 const Order = require("../models/Order");
 const Product = require("../models/Product");
+const InventoryTransaction = require("../models/InventoryTransaction");
 const asyncHandler = require("../utils/asyncHandler");
 const ApiError = require("../utils/ApiError");
 const { findUserCart, findGuestCart } = require("../services/cartService");
 const { resolveItemPrice } = require("../services/pricingService");
 const { resolveCoupon, incrementCouponUsage } = require("../services/couponService");
+const { resolveRecipe } = require("../services/recipeService");
+const { increaseStock, decreaseStock } = require("../services/inventoryLedgerService");
+
+// Statuses at/after which the physical product (and whatever raw materials
+// went into it) has already left the building — reversing consumption at
+// this point would credit back stock for materials that are actually gone,
+// not sitting recoverable in a box on the packing bench.
+const SHIPPED_OR_LATER = ["Shipped", "Delivered"];
 
 const normalizeSessionId = (value = "") => String(value).trim();
 
@@ -72,6 +81,8 @@ const serializeOrder = (order) => ({
   paymentMethod: order.paymentMethod,
   cancelReason: order.cancelReason,
   refundReason: order.refundReason,
+  rawMaterialsConsumedAt: order.rawMaterialsConsumedAt,
+  rawMaterialsReversedAt: order.rawMaterialsReversedAt,
   createdAt: order.createdAt,
   updatedAt: order.updatedAt,
 });
@@ -202,6 +213,110 @@ const applyOrderInventoryChanges = async (items) => {
   }
 
   return decremented;
+};
+
+// Raw-material consumption, triggered the first time an order's status
+// reaches "Packaging" (see updateOrderStatus/advanceOrderStatus below) —
+// distinct from applyOrderInventoryChanges above, which decrements
+// *finished-goods* stock at order creation. This only runs for products
+// that actually have an active Recipe/BOM defined; a product with no
+// recipe simply isn't touched, so existing orders/products keep working
+// unchanged until a recipe is added for them.
+//
+// Guarded by Order.rawMaterialsConsumedAt so re-entering Packaging (status
+// oscillation, a retried request) never double-consumes. If any component
+// runs short partway through, everything already consumed in this call is
+// rolled back and the whole status change fails — an order shouldn't be
+// allowed into Packaging while its materials are only partially reserved.
+const consumeRawMaterialsForOrder = async (order, adminPhone) => {
+  if (order.rawMaterialsConsumedAt) return;
+
+  // order.items is a Mongoose DocumentArray of subdocuments here (this runs
+  // against an already-fetched Order document, unlike
+  // applyOrderInventoryChanges's call site at order creation, where items
+  // are still plain objects) — {...item} on a subdocument doesn't spread
+  // its schema fields the way it does on a plain object, so this needs an
+  // explicit toObject() first or every field silently comes through
+  // undefined.
+  const groupedItems = groupItemsByProductVariant(order.items.map((item) => item.toObject()));
+  const consumed = [];
+
+  try {
+    for (const orderItem of groupedItems) {
+      const recipe = await resolveRecipe(orderItem.productId, orderItem.variant);
+      if (!recipe) continue;
+
+      for (const component of recipe.components) {
+        const componentItemId = component.item?._id || component.item;
+        const result = await decreaseStock({
+          itemObjectId: componentItemId,
+          quantity: component.quantity * orderItem.quantity,
+          type: "consumption",
+          referenceType: "order",
+          order: order._id,
+          reason: `Consumed for order ${order.orderCode} (${orderItem.name} x${orderItem.quantity})`,
+          adminPhone,
+        });
+        consumed.push(result);
+      }
+    }
+  } catch (err) {
+    await Promise.all(
+      consumed.map((entry) =>
+        increaseStock({
+          itemObjectId: entry.item._id,
+          quantity: Math.abs(entry.transaction.quantityChange),
+          unitCost: entry.transaction.unitCost,
+          type: "adjustment",
+          referenceType: "order",
+          order: order._id,
+          reason: `Rollback — raw-material consumption failed for order ${order.orderCode}`,
+          adminPhone,
+        }),
+      ),
+    );
+    throw err;
+  }
+
+  order.rawMaterialsConsumedAt = new Date();
+};
+
+// Credits back whatever consumeRawMaterialsForOrder actually took, read
+// straight from that order's own "consumption" ledger rows rather than
+// recomputed from the current recipe — the recipe may have changed since,
+// but this order genuinely consumed exactly what those rows say, and that's
+// what needs crediting back.
+//
+// Unlike the purchase-cancellation reversal (a decreaseStock call, which
+// can legitimately fail if that stock's already been used elsewhere),
+// giving consumed material back is always an increaseStock call — there's
+// no upper bound to race against, so this can't fail on "insufficient
+// stock". The real safeguard is the caller only invoking this when the
+// order hasn't shipped yet (see SHIPPED_OR_LATER) — past that point the
+// material is physically gone with the product, and crediting it back
+// would inflate stock that doesn't exist.
+const reverseRawMaterialsForOrder = async (order, adminPhone) => {
+  if (!order.rawMaterialsConsumedAt || order.rawMaterialsReversedAt) return;
+
+  const consumptionTransactions = await InventoryTransaction.find({
+    order: order._id,
+    type: "consumption",
+  });
+
+  for (const tx of consumptionTransactions) {
+    await increaseStock({
+      itemObjectId: tx.item,
+      quantity: Math.abs(tx.quantityChange),
+      unitCost: tx.unitCost,
+      type: "return",
+      referenceType: "order",
+      order: order._id,
+      reason: `Reversed — order ${order.orderCode} cancelled/refunded before shipment`,
+      adminPhone,
+    });
+  }
+
+  order.rawMaterialsReversedAt = new Date();
 };
 
 const clearOrderedItemsFromCart = async ({ userId, sessionId, items }) => {
@@ -483,7 +598,7 @@ const createOrder = asyncHandler(async (req, res) => {
     .select("orderId")
     .lean();
   const orderId = latestOrder ? latestOrder.orderId + 1 : 1;
-  const orderCode = `AURA-${new Date().getFullYear()}-${String(orderId).padStart(4, "0")}`;
+  const orderCode = `KOURA-${new Date().getFullYear()}-${String(orderId).padStart(4, "0")}`;
 
   let order;
   try {
@@ -550,6 +665,8 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Order not found");
   }
 
+  const previousStatus = order.status;
+
   order.status = status;
   order.eta = statusEta(status);
   order.cancelReason =
@@ -560,6 +677,16 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
     status === "Refunded"
       ? String(refundReason || "").trim()
       : order.refundReason;
+
+  if (status === "Packaging") {
+    await consumeRawMaterialsForOrder(order, req.user?.phoneNumber || "");
+  } else if (
+    (status === "Cancelled" || status === "Refunded") &&
+    !SHIPPED_OR_LATER.includes(previousStatus)
+  ) {
+    await reverseRawMaterialsForOrder(order, req.user?.phoneNumber || "");
+  }
+
   await order.save();
 
   res.status(200).json({
@@ -582,11 +709,72 @@ const advanceOrderStatus = asyncHandler(async (req, res) => {
   const nextStatus = getNextStatus(order.status);
   order.status = nextStatus;
   order.eta = statusEta(nextStatus);
+
+  if (nextStatus === "Packaging") {
+    await consumeRawMaterialsForOrder(order, req.user?.phoneNumber || "");
+  }
+
   await order.save();
 
   res.status(200).json({
     success: true,
     data: serializeOrder(order),
+  });
+});
+
+// Staff-facing packing checklist — deliberately carries no price/cost/margin
+// data anywhere in the response (unlike serializeOrder, which is fine for
+// order management but was never meant to be printed and taped to a box).
+// Only lists non-raw-material recipe components (packaging, labels, safety
+// sheets, consumables) — raw materials are already inside the finished
+// product by this point, not something staff need to physically add before
+// sealing the box.
+const getPackingSlip = asyncHandler(async (req, res) => {
+  const orderId = Number(req.params.orderId);
+  if (!Number.isFinite(orderId)) {
+    throw new ApiError(400, "Order id must be a number");
+  }
+
+  const order = await Order.findOne({ orderId });
+  if (!order) {
+    throw new ApiError(404, "Order not found");
+  }
+
+  const groupedItems = groupItemsByProductVariant(order.items.map((item) => item.toObject()));
+
+  const items = [];
+  for (const orderItem of groupedItems) {
+    const recipe = await resolveRecipe(orderItem.productId, orderItem.variant);
+    const packagingChecklist = recipe
+      ? recipe.components
+          .filter((component) => component.item?.type !== "raw_material")
+          .map((component) => ({
+            name: component.item?.name || "Unknown item",
+            quantity: component.quantity * orderItem.quantity,
+            unit: component.item?.unit || "",
+          }))
+      : [];
+
+    items.push({
+      productId: orderItem.productId,
+      name: orderItem.name,
+      variant: orderItem.variant,
+      quantity: orderItem.quantity,
+      image: orderItem.image,
+      packagingChecklist,
+    });
+  }
+
+  res.status(200).json({
+    success: true,
+    data: {
+      orderId: order.orderId,
+      orderCode: order.orderCode,
+      status: order.status,
+      createdAt: order.createdAt,
+      shipping: order.shipping,
+      items,
+    },
   });
 });
 
@@ -596,4 +784,5 @@ module.exports = {
   createOrder,
   updateOrderStatus,
   advanceOrderStatus,
+  getPackingSlip,
 };

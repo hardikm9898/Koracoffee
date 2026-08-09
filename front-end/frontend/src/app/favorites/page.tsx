@@ -20,7 +20,7 @@ export default function FavoritesPage() {
           <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mb-8">
             <Heart className="w-12 h-12 text-primary opacity-50" />
           </div>
-          <h2 className="text-3xl font-serif font-bold mb-4 text-foreground">Aura is Waiting</h2>
+          <h2 className="text-3xl font-serif font-bold mb-4 text-foreground">Koura is Waiting</h2>
           <p className="text-muted mb-10 leading-relaxed">Your favorites list is empty. Start exploring our curated collections to find your daily ritual.</p>
           <Link href="/shop" className="w-full bg-primary text-white px-8 py-4 rounded-2xl font-bold hover:bg-foreground transition-all duration-300 shadow-[0_20px_40px_rgba(198,156,109,0.2)] flex items-center justify-center gap-2 group">
             Discover Collection <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />

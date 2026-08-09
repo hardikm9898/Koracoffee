@@ -119,3 +119,40 @@ export async function advanceOrderStatus(
   });
   return parseAdminResponse<AdminOrderRecord>(response);
 }
+
+export type PackingSlipItem = {
+  productId: number;
+  name: string;
+  variant: string;
+  quantity: number;
+  image: string | null;
+  packagingChecklist: { name: string; quantity: number; unit: string }[];
+};
+
+export type PackingSlip = {
+  orderId: number;
+  orderCode: string;
+  status: string;
+  createdAt: string;
+  shipping: {
+    name: string;
+    address: string;
+    apartment?: string;
+    city: string;
+    state: string;
+    country: string;
+    zip: string;
+    phone: string;
+  };
+  items: PackingSlipItem[];
+};
+
+// Deliberately no cost/price fields anywhere in this response — see
+// orderController.getPackingSlip. This is meant to be printed and taped to
+// a box, not just viewed by an admin.
+export async function getPackingSlip(orderId: number): Promise<PackingSlip> {
+  const response = await adminFetch(`/admin/orders/${orderId}/packing-slip`, {
+    cache: "no-store",
+  });
+  return parseAdminResponse<PackingSlip>(response);
+}

@@ -3,8 +3,8 @@ import "./globals.css";
 import AdminAppShell from "@/components/admin/AdminAppShell";
 
 export const metadata: Metadata = {
-  title: "Aura Admin",
-  description: "Standalone admin frontend for the Aura store.",
+  title: "Koura Admin",
+  description: "Standalone admin frontend for the Koura Coffee store.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

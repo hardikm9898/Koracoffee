@@ -101,7 +101,7 @@
         "transform": "lodash/{{member}}"
       }
     },
-    "outputFileTracingRoot": "D:\\hardik\\coffee\\front-end\\admin-frontend",
+    "outputFileTracingRoot": "D:\\BB\\perfumary\\cofee\\front-end\\admin-frontend",
     "cacheComponents": false,
     "cacheLife": {
       "default": {
@@ -158,7 +158,7 @@
       "proxyPrefetch": "flexible",
       "optimisticClientCache": true,
       "manualClientBasePath": false,
-      "cpus": 15,
+      "cpus": 7,
       "memoryBasedWorkersCount": false,
       "imgOptConcurrency": null,
       "imgOptTimeoutInSeconds": 7,
@@ -294,11 +294,11 @@
     "bundlePagesRouterDependencies": false,
     "configFileName": "next.config.ts",
     "turbopack": {
-      "root": "D:\\hardik\\coffee\\front-end\\admin-frontend"
+      "root": "D:\\BB\\perfumary\\cofee\\front-end\\admin-frontend"
     },
     "distDirRoot": ".next"
   },
-  "appDir": "D:\\hardik\\coffee\\front-end\\admin-frontend",
+  "appDir": "D:\\BB\\perfumary\\cofee\\front-end\\admin-frontend",
   "relativeAppDir": "",
   "files": [
     ".next\\routes-manifest.json",

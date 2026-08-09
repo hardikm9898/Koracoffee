@@ -14,8 +14,12 @@ A 3-app coffee e-commerce system, all sharing one MongoDB database via one backe
 | **Customer storefront** | `front-end/frontend/` | Next.js 16 (App Router), React 19, Tailwind v4 | Public shop: browse, cart, checkout, profile |
 | **Admin dashboard** | `front-end/admin-frontend/` | Next.js 16 (App Router), React 19, Tailwind v4 | Internal tool: products, orders, customers, reviews, analytics |
 
-Brand name in the UI: **Aura Coffee**. Auth is phone-number + OTP based (no
-passwords, no email login) for both customers and admins.
+Brand name in the UI: **Koura Coffee** (renamed from "Aura Coffee" on
+2026-08-09 to match the real logo/email; the rest of this documentation
+folder still says "Aura" throughout and hasn't been swept yet — treat "Aura"
+and "Koura" as the same brand when reading older doc files). Auth is
+phone-number + OTP based (no passwords, no email login) for both customers
+and admins.
 
 ## How to use this context system (read this first)
 

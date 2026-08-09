@@ -2,6 +2,8 @@ const request = require("supertest");
 const app = require("../src/app");
 const Category = require("../src/models/Category");
 const Product = require("../src/models/Product");
+const InventoryItem = require("../src/models/InventoryItem");
+const Supplier = require("../src/models/Supplier");
 
 const uniquePhone = () => `9${Math.floor(100000000 + Math.random() * 800000000)}`;
 
@@ -49,6 +51,30 @@ async function createTestProduct(overrides = {}) {
   });
 }
 
+async function createTestInventoryItem(overrides = {}) {
+  const latest = await InventoryItem.findOne().sort({ itemId: -1 }).select("itemId").lean();
+  const itemId = overrides.itemId || (latest ? latest.itemId + 1 : 1);
+
+  return InventoryItem.create({
+    itemId,
+    name: overrides.name || `Test Item ${itemId}`,
+    sku: overrides.sku || `SKU-${itemId}`,
+    type: overrides.type || "raw_material",
+    unit: overrides.unit || "kg",
+    currentStock: overrides.currentStock ?? 0,
+    minStock: overrides.minStock ?? 0,
+    reorderLevel: overrides.reorderLevel ?? 0,
+    avgCost: overrides.avgCost ?? 0,
+  });
+}
+
+async function createTestSupplier(overrides = {}) {
+  return Supplier.create({
+    name: overrides.name || `Test Supplier ${Date.now()}-${Math.random()}`,
+    ...overrides,
+  });
+}
+
 module.exports = {
   app,
   request,
@@ -56,4 +82,6 @@ module.exports = {
   loginAdmin,
   createTestCategory,
   createTestProduct,
+  createTestInventoryItem,
+  createTestSupplier,
 };

@@ -153,6 +153,27 @@ const orderSchema = new mongoose.Schema(
       default: "",
       trim: true,
     },
+    // Idempotency guard for raw-material consumption (orderController's
+    // consumeRawMaterialsForOrder) — set once, the first time this order's
+    // status reaches "Packaging". Prevents double-consuming raw materials
+    // if the order status oscillates back to Packaging later, or a status
+    // update is retried/reprocessed. `null` also correctly describes orders
+    // that existed before this field was added.
+    rawMaterialsConsumedAt: {
+      type: Date,
+      default: null,
+    },
+    // Idempotency guard for the reverse operation — set once, if this order
+    // is cancelled/refunded while still recoverable (see
+    // orderController.reverseRawMaterialsForOrder for what "recoverable"
+    // means here). Distinct from rawMaterialsConsumedAt rather than
+    // clearing it, so "was this order's consumption ever reversed" stays a
+    // real, queryable fact instead of being indistinguishable from "never
+    // consumed at all".
+    rawMaterialsReversedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,

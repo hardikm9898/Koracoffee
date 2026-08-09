@@ -38,6 +38,14 @@
       "namedRegex": "^/orders/(?<nxtPorderId>[^/]+?)(?:/)?$"
     },
     {
+      "page": "/orders/[orderId]/packing-slip",
+      "regex": "^/orders/([^/]+?)/packing\\-slip(?:/)?$",
+      "routeKeys": {
+        "nxtPorderId": "nxtPorderId"
+      },
+      "namedRegex": "^/orders/(?<nxtPorderId>[^/]+?)/packing\\-slip(?:/)?$"
+    },
+    {
       "page": "/products/[productId]",
       "regex": "^/products/([^/]+?)(?:/)?$",
       "routeKeys": {
@@ -74,6 +82,12 @@
       "namedRegex": "^/_not\\-found(?:/)?$"
     },
     {
+      "page": "/apple-icon.png",
+      "regex": "^/apple\\-icon\\.png(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/apple\\-icon\\.png(?:/)?$"
+    },
+    {
       "page": "/audit-log",
       "regex": "^/audit\\-log(?:/)?$",
       "routeKeys": {},
@@ -96,6 +110,30 @@
       "regex": "^/customers(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/customers(?:/)?$"
+    },
+    {
+      "page": "/expenses",
+      "regex": "^/expenses(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/expenses(?:/)?$"
+    },
+    {
+      "page": "/favicon.ico",
+      "regex": "^/favicon\\.ico(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/favicon\\.ico(?:/)?$"
+    },
+    {
+      "page": "/inventory",
+      "regex": "^/inventory(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/inventory(?:/)?$"
+    },
+    {
+      "page": "/inventory/ledger",
+      "regex": "^/inventory/ledger(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/inventory/ledger(?:/)?$"
     },
     {
       "page": "/login",
@@ -128,6 +166,24 @@
       "namedRegex": "^/products/new(?:/)?$"
     },
     {
+      "page": "/purchases",
+      "regex": "^/purchases(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/purchases(?:/)?$"
+    },
+    {
+      "page": "/recipes",
+      "regex": "^/recipes(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/recipes(?:/)?$"
+    },
+    {
+      "page": "/reports",
+      "regex": "^/reports(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/reports(?:/)?$"
+    },
+    {
       "page": "/reviews",
       "regex": "^/reviews(?:/)?$",
       "routeKeys": {},
@@ -138,6 +194,12 @@
       "regex": "^/settings(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/settings(?:/)?$"
+    },
+    {
+      "page": "/suppliers",
+      "regex": "^/suppliers(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/suppliers(?:/)?$"
     }
   ],
   "dataRoutes": [],

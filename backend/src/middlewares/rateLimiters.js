@@ -7,6 +7,16 @@ const rateLimit = require("express-rate-limit");
 // given test actually checks.
 const isTestEnv = process.env.NODE_ENV === "test";
 
+// Same reasoning extends to local development: a single admin dashboard
+// mount alone fires 5+ requests, and Fast Refresh/StrictMode remounts or a
+// few manual page reloads burn through the 300/15min budget in minutes,
+// then every retry keeps 429ing until the window resets. This is abuse
+// prevention for real traffic, not something a trusted local dev session
+// should be throttled by — production always sets NODE_ENV=production
+// (otpSender.js already hard-fails otherwise), so this can't accidentally
+// leave a real deployment unprotected.
+const isDevEnv = process.env.NODE_ENV === "development";
+
 // Applied to every /api route. Generous enough not to interfere with normal
 // browsing/checkout traffic, but stops unbounded scripted abuse.
 const apiLimiter = rateLimit({
@@ -14,7 +24,7 @@ const apiLimiter = rateLimit({
   max: 300,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: () => isTestEnv,
+  skip: () => isTestEnv || isDevEnv,
   message: { success: false, message: "Too many requests. Please try again later." },
 });
 
@@ -28,7 +38,7 @@ const authLimiter = rateLimit({
   max: 20,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: () => isTestEnv,
+  skip: () => isTestEnv || isDevEnv,
   message: { success: false, message: "Too many auth attempts. Please try again later." },
 });
 

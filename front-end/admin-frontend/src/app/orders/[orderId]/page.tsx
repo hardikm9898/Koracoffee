@@ -13,12 +13,20 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ or
           <h1 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-foreground sm:text-4xl">{order.orderCode}</h1>
           <p className="mt-3 max-w-2xl text-sm leading-7 text-muted">Full order record with shipping, payment, and item breakdown in a clean admin view.</p>
         </div>
-        <Link
-          href="/orders"
-          className="inline-flex h-12 items-center justify-center rounded-full border border-slate-200 bg-white px-6 text-sm font-semibold text-slate-900 transition hover:bg-slate-50"
-        >
-          Back to orders
-        </Link>
+        <div className="flex gap-3">
+          <Link
+            href={`/orders/${order.id}/packing-slip`}
+            className="inline-flex h-12 items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-white transition hover:bg-primary-dark"
+          >
+            Packing slip
+          </Link>
+          <Link
+            href="/orders"
+            className="inline-flex h-12 items-center justify-center rounded-full border border-slate-200 bg-white px-6 text-sm font-semibold text-slate-900 transition hover:bg-slate-50"
+          >
+            Back to orders
+          </Link>
+        </div>
       </div>
 
       <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
