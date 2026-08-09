@@ -4,18 +4,31 @@ const DEFAULT_API_BASE_URL =
 // The admin_token session cookie is SameSite=Lax, which withholds the
 // cookie on cross-*site* requests — and browsers treat "localhost" and a
 // raw LAN IP as different sites even when they're the same machine. If this
-// page was opened via a host that doesn't match NEXT_PUBLIC_API_BASE_URL
-// (e.g. a LAN IP like 192.168.x.x while the env var still says
-// "localhost"), keep the API call on the SAME host the browser actually
-// used so the cookie set at login is still same-site on every later
-// request. Without this, login "succeeds" (a response can always set a
-// cookie) but the very next request comes back as if there's no session.
+// page was opened via a LAN IP (e.g. 192.168.x.x) while
+// NEXT_PUBLIC_API_BASE_URL still says "localhost", keep the API call on the
+// SAME host the browser actually used so the cookie set at login is still
+// same-site on every later request. Without this, login "succeeds" (a
+// response can always set a cookie) but the very next request comes back as
+// if there's no session.
+//
+// Deliberately scoped to ONLY the "localhost baked in, browser is on a LAN
+// IP" case — not a general "hostname differs from the configured API host"
+// rule. In production, admin.example.com and api.example.com are
+// *supposed* to be different hosts; rewriting api's hostname to match
+// admin's own would silently send every request to the admin app's own
+// Next.js server instead of the real backend (verified live: this exact
+// bug sent POSTs to admin.kouracoffee.com, which has no handler for them —
+// Next.js's default response for an unsupported method on a page route is
+// a plain-text "405 Method Not Allowed", not JSON, which is what broke
+// admin login in production on 2026-08-09).
+const isLocalDevBaseUrl = (hostname: string) => hostname === "localhost" || hostname === "127.0.0.1";
+
 const resolveApiBaseUrl = () => {
   if (typeof window === "undefined") return DEFAULT_API_BASE_URL;
 
   try {
     const url = new URL(DEFAULT_API_BASE_URL);
-    if (url.hostname !== window.location.hostname) {
+    if (isLocalDevBaseUrl(url.hostname) && !isLocalDevBaseUrl(window.location.hostname)) {
       url.hostname = window.location.hostname;
     }
     return url.toString().replace(/\/$/, "");
