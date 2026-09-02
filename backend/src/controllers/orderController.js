@@ -8,6 +8,7 @@ const { resolveItemPrice } = require("../services/pricingService");
 const { resolveCoupon, incrementCouponUsage } = require("../services/couponService");
 const { resolveRecipe } = require("../services/recipeService");
 const { increaseStock, decreaseStock } = require("../services/inventoryLedgerService");
+const { createRazorpayOrder, verifyPaymentSignature } = require("../services/paymentService");
 
 // Statuses at/after which the physical product (and whatever raw materials
 // went into it) has already left the building — reversing consumption at
@@ -79,6 +80,15 @@ const serializeOrder = (order) => ({
   eta: order.eta,
   notes: order.notes,
   paymentMethod: order.paymentMethod,
+  paymentGateway: order.paymentGateway,
+  paymentStatus: order.paymentStatus,
+  razorpayOrderId: order.razorpayOrderId,
+  razorpayPaymentId: order.razorpayPaymentId,
+  shiprocketShipmentId: order.shiprocketShipmentId,
+  awbCode: order.awbCode,
+  courierName: order.courierName,
+  trackingStatus: order.trackingStatus,
+  labelUrl: order.labelUrl,
   cancelReason: order.cancelReason,
   refundReason: order.refundReason,
   rawMaterialsConsumedAt: order.rawMaterialsConsumedAt,
@@ -585,9 +595,12 @@ const getOrderById = asyncHandler(async (req, res) => {
   });
 });
 
-const createOrder = asyncHandler(async (req, res) => {
-  const payload = await buildOrderPayload(req.body);
-
+// Shared by createOrder (direct/COD-style creation) and
+// verifyRazorpayPayment (creation gated on a verified payment) —
+// everything from stock reservation through cart-clearing is identical
+// either way, only the paymentInfo fields stamped onto the created Order
+// differ.
+const finalizeOrder = async (req, payload, paymentInfo = {}) => {
   // Reserve stock first (atomic per item — see applyOrderInventoryChanges).
   // If this throws (insufficient stock, including a race lost to a
   // concurrent checkout), no order is created at all.
@@ -607,6 +620,7 @@ const createOrder = asyncHandler(async (req, res) => {
       orderCode,
       user: req.user._id,
       ...payload,
+      ...paymentInfo,
     });
   } catch (err) {
     // Stock was already reserved above — give it back if the order itself
@@ -627,6 +641,79 @@ const createOrder = asyncHandler(async (req, res) => {
     userId: req.user?._id,
     sessionId: extractSessionIdFromReq(req),
     items: payload.items,
+  });
+
+  return order;
+};
+
+const createOrder = asyncHandler(async (req, res) => {
+  const payload = await buildOrderPayload(req.body);
+  const order = await finalizeOrder(req, payload);
+
+  res.status(201).json({
+    success: true,
+    data: serializeOrder(order),
+  });
+});
+
+// Step 1 of the Razorpay flow: compute the authoritative order total
+// server-side (same buildOrderPayload used by createOrder) and open a
+// Razorpay order against it. Nothing is persisted here yet — no stock
+// reservation, no Order document — so an abandoned checkout leaves no
+// trace. The frontend uses the returned razorpayOrderId to open Razorpay's
+// Checkout modal.
+const initiateRazorpayPayment = asyncHandler(async (req, res) => {
+  const payload = await buildOrderPayload(req.body);
+  const amount = Math.round(payload.total * 100); // paise
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new ApiError(400, "Order total must be a valid positive amount");
+  }
+
+  const receipt = `rcpt_${req.user._id}_${Date.now()}`.slice(0, 40);
+  const razorpayOrder = await createRazorpayOrder({ amount, receipt });
+
+  res.status(201).json({
+    success: true,
+    data: {
+      razorpayOrderId: razorpayOrder.id,
+      amount: razorpayOrder.amount,
+      currency: razorpayOrder.currency,
+      keyId: process.env.RAZORPAY_KEY_ID,
+      total: payload.total,
+    },
+  });
+});
+
+// Step 2: called with the razorpay_* fields Razorpay's Checkout handler
+// returns after a successful payment, plus the same order body sent to
+// initiateRazorpayPayment. The order is only ever created here, after the
+// HMAC signature is verified — that signature is the actual proof a
+// payment was captured; nothing earlier in this flow confirms that.
+const verifyRazorpayPayment = asyncHandler(async (req, res) => {
+  const { razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body;
+
+  if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
+    throw new ApiError(400, "Missing Razorpay payment verification fields");
+  }
+
+  const isValid = verifyPaymentSignature({
+    orderId: razorpayOrderId,
+    paymentId: razorpayPaymentId,
+    signature: razorpaySignature,
+  });
+
+  if (!isValid) {
+    throw new ApiError(400, "Payment verification failed");
+  }
+
+  const payload = await buildOrderPayload(req.body);
+  const order = await finalizeOrder(req, payload, {
+    paymentMethod: "Razorpay",
+    paymentGateway: "razorpay",
+    paymentStatus: "paid",
+    razorpayOrderId,
+    razorpayPaymentId,
   });
 
   res.status(201).json({
@@ -677,6 +764,10 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
     status === "Refunded"
       ? String(refundReason || "").trim()
       : order.refundReason;
+
+  if (status === "Refunded" && order.paymentStatus === "paid") {
+    order.paymentStatus = "refunded";
+  }
 
   if (status === "Packaging") {
     await consumeRawMaterialsForOrder(order, req.user?.phoneNumber || "");
@@ -782,7 +873,14 @@ module.exports = {
   listOrders,
   getOrderById,
   createOrder,
+  initiateRazorpayPayment,
+  verifyRazorpayPayment,
   updateOrderStatus,
   advanceOrderStatus,
   getPackingSlip,
+  // Reused by shippingController.js and webhookController.js so shipment
+  // creation and Shiprocket webhook updates serialize/compute ETA exactly
+  // the same way order creation and status updates already do.
+  serializeOrder,
+  statusEta,
 };

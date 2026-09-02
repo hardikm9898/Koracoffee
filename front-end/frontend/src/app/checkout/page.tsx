@@ -7,7 +7,8 @@ import { Coffee, ShieldCheck, CreditCard, ChevronRight, CheckCircle2, ArrowLeft,
 import { useAppContext } from "@/context/CartContext";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { createOrder } from "@/lib/order-api";
+import { createRazorpayOrder, verifyRazorpayPayment, type OrderInput } from "@/lib/order-api";
+import { loadRazorpayCheckout } from "@/lib/razorpay";
 import { getStoredSession } from "@/lib/auth";
 import { addUserAddress, getUserAddresses, updateUserAddress, type AddressRecord } from "@/lib/user-api";
 import { validateCoupon } from "@/lib/coupon-api";
@@ -35,7 +36,6 @@ export default function CheckoutPage() {
     state: "",
     country: "",
     zip: "",
-    cardName: ""
   });
   const [couponCode, setCouponCode] = useState("");
   const [couponMessage, setCouponMessage] = useState("");
@@ -62,7 +62,6 @@ export default function CheckoutPage() {
       case 'city':
       case 'state':
       case 'country':
-      case 'cardName':
          return value.trim().length > 1;
       default: return true;
     }
@@ -329,54 +328,109 @@ export default function CheckoutPage() {
     const tax = Math.round(cartTotal * 0.08 * 100) / 100;
     const couponDiscount = appliedCoupon?.discount ?? 0;
     const finalTotal = Math.max(0, cartTotal + shipping + tax - couponDiscount);
+    const storedSession = getStoredSession();
 
-    const saveOrder = async () => {
+    const orderBody: OrderInput = {
+      items: cart.map((item) => ({
+        productId: item.id,
+        name: item.name,
+        variant: item.variant,
+        quantity: item.quantity,
+        price: item.price,
+        image: item.image,
+      })),
+      shipping: {
+        name: `${formData.firstName} ${formData.lastName}`,
+        email: "customer@aura.coffee",
+        phone: storedSession?.user?.phoneNumber || "9999999999",
+        address: formData.address,
+        apartment: formData.apartment || "",
+        company: formData.company || "",
+        city: formData.city,
+        state: formData.state,
+        country: formData.country,
+        zip: formData.zip,
+      },
+      couponCode: appliedCoupon?.code,
+      subtotal: cartTotal,
+      shippingFee: shipping,
+      tax,
+      total: finalTotal,
+    };
+
+    // Two-step Razorpay flow: (1) ask the backend for a Razorpay order
+    // against the server-computed total, (2) open Razorpay's hosted
+    // Checkout, then (3) hand its verification fields back to the backend,
+    // which only creates the real Order once the payment signature checks
+    // out. See lib/order-api.ts and backend/src/services/paymentService.js.
+    const startPayment = async () => {
       try {
-        const storedSession = getStoredSession();
+        await loadRazorpayCheckout();
+        const razorpayOrder = await createRazorpayOrder(orderBody);
 
-        await createOrder({
-          items: cart.map((item) => ({
-            productId: item.id,
-            name: item.name,
-            variant: item.variant,
-            quantity: item.quantity,
-            price: item.price,
-            image: item.image,
-          })),
-          shipping: {
-            name: `${formData.firstName} ${formData.lastName}`,
-            email: "customer@aura.coffee",
-            phone: storedSession?.user?.phoneNumber || "9999999999",
-            address: formData.address,
-            apartment: formData.apartment || "",
-            company: formData.company || "",
-            city: formData.city,
-            state: formData.state,
-            country: formData.country,
-            zip: formData.zip,
+        if (!window.Razorpay) {
+          throw new Error("Payment gateway failed to load. Please try again.");
+        }
+
+        // Razorpay shows its own modal from here — drop our overlay so the
+        // two don't stack.
+        setIsProcessing(false);
+
+        const rzp = new window.Razorpay({
+          key: razorpayOrder.keyId,
+          amount: razorpayOrder.amount,
+          currency: razorpayOrder.currency,
+          order_id: razorpayOrder.razorpayOrderId,
+          name: "Koura Coffee",
+          description: `Order · ${cart.length} item${cart.length === 1 ? "" : "s"}`,
+          prefill: {
+            name: orderBody.shipping.name,
+            email: orderBody.shipping.email,
+            contact: orderBody.shipping.phone,
           },
-          couponCode: appliedCoupon?.code,
-          subtotal: cartTotal,
-          shippingFee: shipping,
-          tax,
-          total: finalTotal,
+          theme: { color: "#C69C6D" },
+          handler: (response) => {
+            setIsProcessing(true);
+            void (async () => {
+              try {
+                await verifyRazorpayPayment({
+                  ...orderBody,
+                  razorpayOrderId: response.razorpay_order_id,
+                  razorpayPaymentId: response.razorpay_payment_id,
+                  razorpaySignature: response.razorpay_signature,
+                });
+                clearCart();
+                setIsSuccess(true);
+              } catch (error) {
+                console.warn("Payment succeeded but order verification failed", error);
+                setOrderError(
+                  error instanceof Error
+                    ? error.message
+                    : "Payment succeeded but we couldn't confirm your order. Please contact support before retrying.",
+                );
+              } finally {
+                setIsProcessing(false);
+              }
+            })();
+          },
+          modal: {
+            ondismiss: () => setIsProcessing(false),
+          },
         });
 
-        clearCart();
-        setIsSuccess(true);
+        rzp.open();
       } catch (error) {
-        console.warn("Unable to save order to backend", error);
+        console.warn("Unable to start Razorpay checkout", error);
         setOrderError(
           error instanceof Error
             ? error.message
-            : "We couldn't place your order. Please try again.",
+            : "We couldn't start the payment process. Please try again.",
         );
-      } finally {
         setIsProcessing(false);
       }
     };
 
-    void saveOrder();
+    void startPayment();
   };
 
   if (!isCartReady && !isSuccess) {
@@ -406,8 +460,8 @@ export default function CheckoutPage() {
     return (
       <div className="pt-24 pb-24 px-6 container mx-auto min-h-screen flex flex-col items-center justify-center text-center relative">
         {isSuccess && <Confetti width={width} height={height} recycle={false} numberOfPieces={500} colors={['#C69C6D', '#2A1C16', '#F5EBE1']} />}
-        
-        <motion.div 
+
+        <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: "spring", damping: 12 }}
@@ -417,7 +471,7 @@ export default function CheckoutPage() {
           <CheckCircle2 className="w-12 h-12 text-primary" />
         </motion.div>
 
-        <motion.h1 
+        <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
@@ -426,7 +480,7 @@ export default function CheckoutPage() {
           Order <span className="gradient-text italic">Confirmed</span>
         </motion.h1>
 
-        <motion.p 
+        <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
@@ -434,8 +488,8 @@ export default function CheckoutPage() {
         >
           Thank you for exploring the future of flavor with us. Your freshly roasted beans are being prepared for dispatch.
         </motion.p>
-        
-        <motion.div 
+
+        <motion.div
            initial={{ opacity: 0, y: 20 }}
            animate={{ opacity: 1, y: 0 }}
            transition={{ delay: 0.6 }}
@@ -461,7 +515,7 @@ export default function CheckoutPage() {
   return (
     <div className="pt-24 pb-24 px-6 md:px-12 container mx-auto min-h-screen">
       <div className="flex flex-col lg:flex-row gap-16 max-w-7xl mx-auto">
-        
+
         {/* Left Side - Checkout Flow */}
         <div className="flex-1">
           <Link href="/cart" className="inline-flex items-center gap-2 text-muted hover:text-primary transition-colors mb-8 font-medium">
@@ -473,8 +527,8 @@ export default function CheckoutPage() {
           {/* Progress Bar */}
           <div className="flex items-center justify-between mb-16 relative">
             <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1.5 bg-black/5 -z-10 rounded-full" />
-            <motion.div 
-              className="absolute left-0 top-1/2 -translate-y-1/2 h-1.5 bg-primary -z-10 rounded-full" 
+            <motion.div
+              className="absolute left-0 top-1/2 -translate-y-1/2 h-1.5 bg-primary -z-10 rounded-full"
               initial={{ width: "0%" }}
               animate={{ width: `${(currentStep / (STEPS.length - 1)) * 100}%` }}
               transition={{ duration: 0.5, ease: "easeInOut" }}
@@ -505,7 +559,7 @@ export default function CheckoutPage() {
              <AnimatePresence mode="wait">
                {/* STEP 1: SHIPPING */}
                {currentStep === 0 && (
-                 <motion.div 
+                 <motion.div
                    key="step1"
                    initial={{ opacity: 0, x: 20 }}
                    animate={{ opacity: 1, x: 0 }}
@@ -628,8 +682,8 @@ export default function CheckoutPage() {
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                      <div className="space-y-2.5 relative">
                        <label className="text-xs font-bold text-muted uppercase tracking-widest ml-1">First Name</label>
-                       <input type="text" 
-                         className={`w-full border rounded-2xl px-5 py-4 focus:outline-none transition-all duration-300 font-medium ${getValidationClass('firstName')}`} 
+                       <input type="text"
+                         className={`w-full border rounded-2xl px-5 py-4 focus:outline-none transition-all duration-300 font-medium ${getValidationClass('firstName')}`}
                          value={formData.firstName}
                          onChange={(e) => handleInputChange('firstName', e.target.value)}
                          onBlur={() => setTouched(prev => ({ ...prev, firstName: true }))}
@@ -637,8 +691,8 @@ export default function CheckoutPage() {
                      </div>
                      <div className="space-y-2.5 relative">
                        <label className="text-xs font-bold text-muted uppercase tracking-widest ml-1">Last Name</label>
-                       <input type="text" 
-                         className={`w-full border rounded-2xl px-5 py-4 focus:outline-none transition-all duration-300 font-medium ${getValidationClass('lastName')}`} 
+                       <input type="text"
+                         className={`w-full border rounded-2xl px-5 py-4 focus:outline-none transition-all duration-300 font-medium ${getValidationClass('lastName')}`}
                          value={formData.lastName}
                          onChange={(e) => handleInputChange('lastName', e.target.value)}
                          onBlur={() => setTouched(prev => ({ ...prev, lastName: true }))}
@@ -648,8 +702,8 @@ export default function CheckoutPage() {
                        <label className="text-xs font-bold text-muted uppercase tracking-widest ml-1">Street Address</label>
                        <div className="relative">
                           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted opacity-40" />
-                          <input type="text" 
-                            className={`w-full border rounded-2xl px-5 py-4 pl-12 focus:outline-none transition-all duration-300 font-medium ${getValidationClass('address')}`} 
+                          <input type="text"
+                            className={`w-full border rounded-2xl px-5 py-4 pl-12 focus:outline-none transition-all duration-300 font-medium ${getValidationClass('address')}`}
                             value={formData.address}
                             onChange={(e) => handleInputChange('address', e.target.value)}
                             onBlur={() => setTouched(prev => ({ ...prev, address: true }))}
@@ -674,8 +728,8 @@ export default function CheckoutPage() {
                      </div>
                      <div className="space-y-2.5 relative">
                        <label className="text-xs font-bold text-muted uppercase tracking-widest ml-1">City</label>
-                       <input type="text" 
-                         className={`w-full border rounded-2xl px-5 py-4 focus:outline-none transition-all duration-300 font-medium ${getValidationClass('city')}`} 
+                       <input type="text"
+                         className={`w-full border rounded-2xl px-5 py-4 focus:outline-none transition-all duration-300 font-medium ${getValidationClass('city')}`}
                          value={formData.city}
                          onChange={(e) => handleInputChange('city', e.target.value)}
                          onBlur={() => setTouched(prev => ({ ...prev, city: true }))}
@@ -701,8 +755,8 @@ export default function CheckoutPage() {
                      </div>
                      <div className="space-y-2.5 relative">
                        <label className="text-xs font-bold text-muted uppercase tracking-widest ml-1">Postcode</label>
-                       <input type="text" 
-                         className={`w-full border rounded-2xl px-5 py-4 focus:outline-none transition-all duration-300 font-medium ${getValidationClass('zip')}`} 
+                       <input type="text"
+                         className={`w-full border rounded-2xl px-5 py-4 focus:outline-none transition-all duration-300 font-medium ${getValidationClass('zip')}`}
                          value={formData.zip}
                           onChange={(e) => handleInputChange('zip', e.target.value)}
                           onBlur={() => setTouched(prev => ({ ...prev, zip: true }))}
@@ -746,7 +800,7 @@ export default function CheckoutPage() {
 
                {/* STEP 2: PAYMENT */}
                {currentStep === 1 && (
-                 <motion.div 
+                 <motion.div
                    key="step2"
                    initial={{ opacity: 0, x: 20 }}
                    animate={{ opacity: 1, x: 0 }}
@@ -760,56 +814,47 @@ export default function CheckoutPage() {
                         </div>
                         <h2 className="text-2xl font-serif font-bold text-foreground">Payment Method</h2>
                       </div>
-                      <div className="flex gap-2">
-                         <div className="w-10 h-6 bg-black/5 rounded flex items-center justify-center text-[8px] font-black italic tracking-tighter opacity-70">VISA</div>
-                         <div className="w-10 h-6 bg-black/5 rounded flex items-center justify-center text-[8px] font-black italic tracking-tighter opacity-70">MC</div>
-                      </div>
                    </div>
-                   
-                   {/* Premium Credit Card Mockup */}
-                   <div className="w-full h-56 bg-[#1A1A1A] rounded-[2rem] p-8 relative overflow-hidden shadow-2xl mb-12 border border-white/5">
+
+                   <div className="w-full rounded-[2rem] p-8 relative overflow-hidden shadow-2xl mb-4 border border-white/5 bg-[#1A1A1A]">
                       <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/4 animate-pulse-slow" />
                       <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full blur-[40px] translate-y-1/2 -translate-x-1/4" />
-                      
-                      <div className="relative z-10 h-full flex flex-col justify-between">
+
+                      <div className="relative z-10 flex flex-col gap-6">
                          <div className="flex justify-between items-start">
                            <div className="w-14 h-10 bg-[#C69C6D]/20 rounded-lg flex items-center justify-center border border-white/10">
-                              <div className="w-10 h-7 bg-[#C69C6D]/40 rounded-sm" />
+                              <ShieldCheck className="w-6 h-6 text-[#C69C6D]" />
                            </div>
                            <span className="text-xl font-black italic tracking-widest text-[#C69C6D]">KOURA</span>
                          </div>
                          <div>
-                            <p className="text-white/30 text-[10px] mb-1.5 uppercase tracking-widest font-black">Secure Payment</p>
-                            <p className="text-2xl sm:text-3xl tracking-[0.25em] font-mono text-white mb-6">**** **** **** 4242</p>
-                            <div className="flex justify-between items-end">
-                              <div>
-                                <p className="text-white/30 text-[8px] uppercase tracking-[0.2em] mb-1">Card Holder</p>
-                                <p className="text-sm font-bold text-white tracking-widest uppercase">{formData.cardName || "John Doe"}</p>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-white/30 text-[8px] uppercase tracking-[0.2em] mb-1">Expires</p>
-                                <p className="text-sm font-bold text-white tracking-widest">12 / 28</p>
-                              </div>
-                            </div>
+                            <p className="text-white/30 text-[10px] mb-2 uppercase tracking-widest font-black">Powered by Razorpay</p>
+                            <p className="text-white text-lg font-semibold mb-1">Pay securely with Cards, UPI, Netbanking or Wallets</p>
+                            <p className="text-white/50 text-sm leading-relaxed">
+                              You&apos;ll enter your payment details on Razorpay&apos;s secure checkout in the final step —
+                              we never see or store your card, UPI, or bank details.
+                            </p>
+                         </div>
+                         <div className="flex flex-wrap gap-2">
+                           {["Cards", "UPI", "Netbanking", "Wallets"].map((method) => (
+                             <span key={method} className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-widest text-white/70">
+                               {method}
+                             </span>
+                           ))}
                          </div>
                       </div>
                    </div>
 
-                   <div className="space-y-2.5 relative">
-                     <label className="text-xs font-bold text-muted uppercase tracking-widest ml-1">Cardholder Name</label>
-                     <input type="text" 
-                       className={`w-full border rounded-2xl px-5 py-4 focus:outline-none transition-all duration-300 font-medium ${getValidationClass('cardName')}`} 
-                       value={formData.cardName}
-                       onChange={(e) => handleInputChange('cardName', e.target.value)}
-                       onBlur={() => setTouched(prev => ({ ...prev, cardName: true }))}
-                     />
-                   </div>
+                   <p className="text-sm text-muted flex items-center gap-2">
+                     <ShieldCheck className="w-4 h-4 text-green-500 shrink-0" />
+                     Payments are processed by Razorpay over an encrypted connection. Your order is only placed after payment is verified.
+                   </p>
                  </motion.div>
                )}
 
                {/* STEP 3: REVIEW */}
                {currentStep === 2 && (
-                 <motion.div 
+                 <motion.div
                    key="step3"
                    initial={{ opacity: 0, x: 20 }}
                    animate={{ opacity: 1, x: 0 }}
@@ -822,7 +867,7 @@ export default function CheckoutPage() {
                       </div>
                       <h2 className="text-2xl font-serif font-bold text-foreground">Final Review</h2>
                    </div>
-                   
+
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                       <div className="bg-black/5 p-8 rounded-3xl border border-black/5 flex flex-col gap-4">
                         <div className="flex items-center gap-3 text-primary font-bold text-xs uppercase tracking-widest">
@@ -840,12 +885,12 @@ export default function CheckoutPage() {
                            <CreditCard className="w-4 h-4" /> Payment
                         </div>
                         <div>
-                          <p className="font-bold text-lg text-foreground mb-1">Visa ending in 4242</p>
-                          <p className="text-sm text-muted">Billed to: {formData.cardName}</p>
+                          <p className="font-bold text-lg text-foreground mb-1">Razorpay Secure Checkout</p>
+                          <p className="text-sm text-muted">You&apos;ll choose Card, UPI, Netbanking or Wallet on the next screen.</p>
                         </div>
                       </div>
                    </div>
-                   
+
                    <div className="p-6 bg-primary/5 rounded-2xl border border-primary/10 text-center">
                       <p className="text-sm text-muted">Estimated Delivery Window: <span className="font-bold text-primary">Oct 24 - Oct 26</span></p>
                    </div>
@@ -874,8 +919,8 @@ export default function CheckoutPage() {
             >
               Previous
             </button>
-            
-            <button 
+
+            <button
               onClick={handleNext}
               disabled={isProcessing}
               className="bg-primary text-white px-10 py-4.5 rounded-2xl font-bold hover:bg-foreground transition-all duration-300 flex items-center gap-3 shadow-[0_20px_40px_rgba(198,156,109,0.2)]"
@@ -891,7 +936,7 @@ export default function CheckoutPage() {
             <h3 className="text-2xl font-serif font-bold mb-8 flex items-center gap-3 text-foreground">
               <Coffee className="w-6 h-6 text-primary" /> My Order
             </h3>
-            
+
             <div className="space-y-6 mb-10 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
               {cart.map((item) => (
                 <div key={`${item.id}-${item.variant}`} className="flex justify-between items-start group">
@@ -964,7 +1009,7 @@ export default function CheckoutPage() {
               <span className="text-xl font-bold text-foreground">Order Total</span>
               <span className="text-3xl font-bold text-primary">₹{finalTotal.toFixed(2)}</span>
             </div>
-            
+
             <div className="mt-10 bg-primary/5 border border-primary/20 rounded-2xl p-5 flex items-start gap-4">
                <ShieldCheck className="w-6 h-6 text-primary shrink-0" />
                <p className="text-[10px] sm:text-[11px] text-muted font-medium leading-relaxed uppercase tracking-wider">

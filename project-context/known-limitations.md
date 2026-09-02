@@ -195,8 +195,35 @@ might be relied upon elsewhere.
     lint, and production build; no browser tool available to click through
     it interactively — see the note this pattern already established for
     the checkout-error fix.
-19. **Checkout's payment step is a non-functional visual mockup** (`**** **** **** 4242`),
-    yet UI copy claims "Secure Stripe Payment" / "AES-256 bank-level encryption".
+19. ~~**Checkout's payment step is a non-functional visual mockup**~~ **RESOLVED.**
+    Real Razorpay integration: `backend/src/services/paymentService.js`
+    (plain REST calls to Razorpay's Orders API + HMAC-SHA256 signature
+    verification via `crypto` — no SDK dependency needed for just these two
+    calls). `POST /api/orders/razorpay/order` computes the authoritative
+    total via the existing `buildOrderPayload` and opens a Razorpay order
+    against it (nothing persisted yet — no stock reserved, no `Order`
+    created); `POST /api/orders/razorpay/verify` takes Razorpay Checkout's
+    `razorpay_order_id`/`razorpay_payment_id`/`razorpay_signature` and only
+    creates the `Order` (via a shared `finalizeOrder` helper, factored out
+    of the original `createOrder`) after the signature is verified — that
+    verification is the only actual proof a payment was captured. `Order`
+    gained `paymentGateway`/`paymentStatus`/`razorpayOrderId`/
+    `razorpayPaymentId`; `updateOrderStatus` now also flips `paymentStatus`
+    to `"refunded"` when an admin sets `Refunded` on a paid order.
+    `checkout/page.tsx`'s Payment step now loads Razorpay's Checkout script
+    on demand (`lib/razorpay.ts`) and opens the real modal instead of
+    showing a fake card mockup; both admin frontend order views now show a
+    payment-status badge. The original direct `POST /api/orders`
+    (`createOrder`) path is unchanged and still used by the existing test
+    suite — Razorpay is additive, not a replacement of that endpoint.
+    Verified: backend's full 79-test suite still passes post-merge, and all
+    three apps' production builds succeed. **Not done**: no payment webhook
+    (relies solely on the client-side verify call, so a payment captured by
+    Razorpay but never followed by a `verify` request — e.g. the browser is
+    closed right after paying — leaves no `Order` despite the charge going
+    through); no COD/alternate payment method; not exercised against a live
+    Razorpay account from this environment (no browser tool available here
+    — verify manually with real test-mode keys before launch).
 20. **`createOrder()` hardcodes `shipping.email: "customer@aura.coffee"`** —
     the checkout form never actually collects an email.
 21. ~~**Coupons are 100% client-side**~~ **RESOLVED.** A real `Coupon`
@@ -530,6 +557,30 @@ might be relied upon elsewhere.
     small a catalog matters more than the query-plan win `$text` would
     give, so that would have been a regression disguised as an
     optimization. See `database.md` for the index list.
+
+48. **Shiprocket integration — several deliberate v1 gaps.**
+    `backend/src/services/shiprocketService.js` (plain REST calls, no SDK —
+    same style as `paymentService.js`) handles login/token caching
+    (~9-day in-process cache; single-instance deployment, same tradeoff as
+    #45), order create, AWB assign, pickup request, and label generation.
+    `shippingController.js` exposes an admin-only, idempotent
+    `POST /api/admin/orders/:orderId/ship` (create → assign AWB → request
+    pickup, then flips `Order.status` to `"Shipped"`) and
+    `POST /api/admin/orders/:orderId/label`, wired into a new "Ship via
+    Shiprocket" button + shipping panel on the admin Orders page (list and
+    detail). `webhookController.js` receives Shiprocket's status-update
+    callbacks at `POST /api/webhooks/shiprocket` (public route, verified via
+    a shared-secret `X-Api-Key` header, `SHIPROCKET_WEBHOOK_SECRET`) and
+    updates `Order.trackingStatus` always, but only auto-advances
+    `Order.status` for the two statuses that map unambiguously
+    (`Delivered`, `Cancelled`) — everything else (in transit, out for
+    delivery, pickup scheduled, etc.) only updates the raw tracking text, on
+    the theory that guessing a mapping into `Received/Roasting/Packaging/
+    Shipped` for statuses that don't correspond 1:1 is worse than leaving it
+    alone. **Not done**: no per-product package weight/dimensions (uses a
+    label-based weight estimate with a coffee-bag-sized fallback, and fixed
+    box dimensions); no live verification against a real Shiprocket account
+    from this environment.
 
 ## When to update this file
 

@@ -85,6 +85,56 @@ const orderSchema = new mongoose.Schema(
       trim: true,
       default: "Card",
     },
+    paymentGateway: {
+      type: String,
+      enum: ["razorpay", "cod"],
+      default: "cod",
+    },
+    paymentStatus: {
+      type: String,
+      enum: ["pending", "paid", "failed", "refunded"],
+      default: "pending",
+    },
+    razorpayOrderId: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    razorpayPaymentId: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    shiprocketOrderId: {
+      type: Number,
+      default: null,
+    },
+    shiprocketShipmentId: {
+      type: Number,
+      default: null,
+    },
+    awbCode: {
+      type: String,
+      default: null,
+      trim: true,
+      index: true,
+      sparse: true,
+    },
+    courierName: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    trackingStatus: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    labelUrl: {
+      type: String,
+      default: null,
+      trim: true,
+    },
     cancelReason: {
       type: String,
       trim: true,

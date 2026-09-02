@@ -3,8 +3,8 @@
 ## Purpose
 
 Convert a cart into a placed order: collect shipping address, apply a coupon,
-show a (mocked) payment step, create the order, and track its status through
-fulfillment.
+take payment via Razorpay, create the order, and track its status (including
+Shiprocket-based shipping) through fulfillment.
 
 ## Entry Point
 
@@ -12,19 +12,28 @@ fulfillment.
 
 ## Related APIs
 
-- `POST /api/orders` (create, `protect` required, stamps `Order.user`)
+- `POST /api/orders/razorpay/order` (`protect` required — computes the
+  authoritative total via `buildOrderPayload` and opens a Razorpay order
+  against it; nothing persisted yet)
+- `POST /api/orders/razorpay/verify` (`protect` required — verifies the
+  Razorpay signature, then runs the same order-creation path as below)
+- `POST /api/orders` (create, `protect` required, stamps `Order.user` —
+  used directly by tests/any non-Razorpay path; the real checkout UI now
+  goes through the two routes above instead)
 - `GET /api/orders?page=&limit=(≤100)&status=&search=` (`protect` required — scoped to `req.user` unless admin; paginated, returns `{items, pagination, summary}`)
 - `GET /api/orders/:orderId` (`protect` required — scoped to `req.user` unless admin)
 - `PATCH /api/orders/:orderId`, `POST /api/orders/:orderId/advance` — **admin-only**, reachable only via `/api/admin/orders`, not this router
+- `POST /api/admin/orders/:orderId/ship`, `POST /api/admin/orders/:orderId/label` — **admin-only**, books/labels the order via Shiprocket (see `shippingController.js`)
+- `POST /api/webhooks/shiprocket` — public, verified via `X-Api-Key` against `SHIPROCKET_WEBHOOK_SECRET` (see `webhookController.js`)
 - `GET/POST/PATCH/DELETE /api/users/me/addresses*` (address management during checkout)
 
 ## Related Controllers
 
-`orderController.js` (`createOrder`, `listOrders`, `getOrderById` — the last two are also reused by the admin router; `updateOrderStatus`/`advanceOrderStatus` are exported but only wired into the admin router), `userController.js` (address CRUD)
+`orderController.js` (`createOrder`, `initiateRazorpayPayment`, `verifyRazorpayPayment`, `listOrders`, `getOrderById` — the last two are also reused by the admin router; `updateOrderStatus`/`advanceOrderStatus` are exported but only wired into the admin router; `createOrder`/`initiateRazorpayPayment`/`verifyRazorpayPayment` all share a `finalizeOrder` helper for stock reservation + `Order.create` + cart-clearing), `userController.js` (address CRUD), `shippingController.js` (admin ship/label actions), `webhookController.js` (Shiprocket status callbacks)
 
 ## Related Services
 
-`cartService.js` (`clearOrderedItemsFromCart`, cart lookup for the items being ordered), `pricingService.js` (`resolveItemPrice` — authoritative price lookup, see Business Rules)
+`cartService.js` (`clearOrderedItemsFromCart`, cart lookup for the items being ordered), `pricingService.js` (`resolveItemPrice` — authoritative price lookup, see Business Rules), `paymentService.js` (`createRazorpayOrder`, `verifyPaymentSignature` — thin wrappers around Razorpay's REST API + HMAC signature check, no SDK dependency), `shiprocketService.js` (login/token caching, order create, AWB assign, pickup, label — plain REST calls, no SDK)
 
 ## Related Models
 
@@ -71,7 +80,7 @@ See [admin-order-management-flow.md](admin-order-management-flow.md) for status 
   call gets rolled back before the error propagates, and `createOrder` does
   the same if `Order.create` itself fails after stock was reserved. See
   [known-limitations.md](../known-limitations.md) #8 for the live verification.
-- **Order IDs**: `orderId` = max existing + 1; `orderCode` = `AURA-<year>-<orderId padded to 4>`.
+- **Order IDs**: `orderId` = max existing + 1; `orderCode` = `KOURA-<year>-<orderId padded to 4>`.
 - **Order ownership**: `Order.user` is stamped from `req.user._id` at creation
   (auth is required to reach `createOrder`). `listOrders`/`getOrderById` on
   the public router only ever return the caller's own orders.
@@ -82,10 +91,23 @@ See [admin-order-management-flow.md](admin-order-management-flow.md) for status 
   requires a `cancelReason` when setting `Cancelled` and a `refundReason` when
   setting `Refunded`, but does **not** otherwise prevent illogical transitions
   (e.g. `Delivered` → `Received` is technically allowed).
-- **Payment is entirely mocked** — the "Payment" step UI is a static card
-  visual; no Stripe/Razorpay/gateway SDK is called anywhere.
+- **Payment is real (Razorpay)**: `initiateRazorpayPayment` opens a
+  Razorpay order for the server-computed total (no stock reserved, no
+  `Order` created yet); the frontend opens Razorpay's Checkout modal
+  against it; `verifyRazorpayPayment` verifies the HMAC-SHA256 signature
+  Razorpay hands back before ever calling `finalizeOrder` — the signature
+  check is the only actual proof a payment was captured. No webhook exists
+  for payment (only for Shiprocket shipping status), so a payment captured
+  by Razorpay but never followed by a client `verify` call (e.g. tab closed
+  mid-flow) leaves no `Order` despite the charge succeeding — see
+  [known-limitations.md](../known-limitations.md) #19.
+- **Shipping is booked separately, by an admin, via Shiprocket** — order
+  creation itself doesn't touch Shiprocket. See
+  [admin-order-management-flow.md](admin-order-management-flow.md).
 - `shipping.email` sent to the backend is **hardcoded to `"customer@aura.coffee"`**
-  by the frontend — the checkout form never collects a real email.
+  by the frontend — the checkout form never collects a real email. (Also
+  used as the Razorpay Checkout prefill email now — same pre-existing gap,
+  not introduced by the payment-gateway integration.)
 - After successful order creation, the frontend calls `clearCart()` — items
   are removed from the `Cart` document, not just hidden in the UI.
 - `Order.itemStatus` (per-item status sub-schema) exists in the model but is
@@ -101,14 +123,20 @@ See [admin-order-management-flow.md](admin-order-management-flow.md) for status 
 
 ```
 backend/src/controllers/orderController.js
+backend/src/controllers/shippingController.js
+backend/src/controllers/webhookController.js
 backend/src/routes/orderRoutes.js
+backend/src/routes/webhookRoutes.js
 backend/src/models/Order.js
 backend/src/services/cartService.js
+backend/src/services/paymentService.js
+backend/src/services/shiprocketService.js
 front-end/frontend/src/app/checkout/page.tsx
 front-end/frontend/src/app/cart/page.tsx
 front-end/frontend/src/app/profile/page.tsx
 front-end/frontend/src/lib/order-api.ts
 front-end/frontend/src/lib/user-api.ts
+front-end/frontend/src/lib/razorpay.ts
 ```
 
 ## Common Mistakes
@@ -118,7 +146,10 @@ front-end/frontend/src/lib/user-api.ts
 
 ## Future Extension Points
 
-- Integrate a real payment gateway before this can process real transactions.
+- ~~Integrate a real payment gateway before this can process real
+  transactions.~~ **Done** — Razorpay. See
+  [known-limitations.md](../known-limitations.md) #19 for what's still not
+  done (no payment webhook, not exercised against a live account).
 - ~~Move coupons into a real `Coupon` model with backend-only validation.~~
   **Done** — see [coupon-flow.md](coupon-flow.md).
 - ~~Re-derive order item price from `Product`/variant data server-side.~~ **Done.**

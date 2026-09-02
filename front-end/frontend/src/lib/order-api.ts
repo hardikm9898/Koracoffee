@@ -53,7 +53,7 @@ export async function getOrders(): Promise<OrderRecord[]> {
   return data.items;
 }
 
-export async function createOrder(order: {
+export type OrderInput = {
   items: OrderItem[];
   shipping: {
     name: string;
@@ -74,7 +74,9 @@ export async function createOrder(order: {
   total: number;
   notes?: string;
   sessionId?: string;
-}): Promise<OrderRecord> {
+};
+
+export async function createOrder(order: OrderInput): Promise<OrderRecord> {
   const token = getAuthToken();
   const body = {
     ...order,
@@ -82,6 +84,62 @@ export async function createOrder(order: {
   };
 
   const response = await fetch(`${API_BASE_URL}/orders`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+  return parseApiResponse<OrderRecord>(response);
+}
+
+export type RazorpayOrderDetails = {
+  razorpayOrderId: string;
+  amount: number;
+  currency: string;
+  keyId: string;
+  total: number;
+};
+
+// Step 1 of checkout: ask the backend to compute the authoritative total for
+// this cart/coupon/shipping combination and open a Razorpay order against
+// it. Nothing is persisted server-side yet.
+export async function createRazorpayOrder(order: OrderInput): Promise<RazorpayOrderDetails> {
+  const token = getAuthToken();
+  const body = {
+    ...order,
+    sessionId: order.sessionId ?? getGuestSessionId(),
+  };
+
+  const response = await fetch(`${API_BASE_URL}/orders/razorpay/order`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+  return parseApiResponse<RazorpayOrderDetails>(response);
+}
+
+// Step 2: after Razorpay's Checkout modal reports a successful payment,
+// send its verification fields back alongside the same order body — the
+// backend only creates the actual Order once the signature checks out.
+export async function verifyRazorpayPayment(
+  order: OrderInput & {
+    razorpayOrderId: string;
+    razorpayPaymentId: string;
+    razorpaySignature: string;
+  },
+): Promise<OrderRecord> {
+  const token = getAuthToken();
+  const body = {
+    ...order,
+    sessionId: order.sessionId ?? getGuestSessionId(),
+  };
+
+  const response = await fetch(`${API_BASE_URL}/orders/razorpay/verify`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

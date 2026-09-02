@@ -6,6 +6,8 @@ import AdminTopbar from "@/components/admin/AdminTopbar";
 import {
   getOrders,
   updateOrderStatus,
+  shipOrder,
+  getShippingLabel,
   type AdminOrderRecord,
   type AdminOrderPagination,
   type AdminOrderSummary,
@@ -64,6 +66,8 @@ export default function OrdersPage() {
   const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
   const [orderUpdates, setOrderUpdates] = useState<Record<number, OrderUpdateState>>({});
   const [savingOrderId, setSavingOrderId] = useState<number | null>(null);
+  const [shippingOrderId, setShippingOrderId] = useState<number | null>(null);
+  const [labelOrderId, setLabelOrderId] = useState<number | null>(null);
 
   useEffect(() => {
     let ignore = false;
@@ -178,6 +182,37 @@ export default function OrdersPage() {
       setError(err instanceof Error ? err.message : "Unable to save order status");
     } finally {
       setSavingOrderId(null);
+    }
+  };
+
+  const handleShipOrder = async (order: AdminOrderRecord) => {
+    try {
+      setShippingOrderId(order.id);
+      setError("");
+      const { pickupScheduled, ...updated } = await shipOrder(order.id);
+      setItems((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+      if (!pickupScheduled) {
+        setError(
+          `Order ${order.orderCode} was booked and its AWB assigned, but pickup scheduling failed — retry pickup from the Shiprocket panel directly.`,
+        );
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to ship this order via Shiprocket");
+    } finally {
+      setShippingOrderId(null);
+    }
+  };
+
+  const handleGetLabel = async (order: AdminOrderRecord) => {
+    try {
+      setLabelOrderId(order.id);
+      setError("");
+      const { labelUrl } = await getShippingLabel(order.id);
+      window.open(labelUrl, "_blank", "noopener,noreferrer");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to generate the shipping label");
+    } finally {
+      setLabelOrderId(null);
     }
   };
 
@@ -419,6 +454,16 @@ export default function OrdersPage() {
                             >
                               {savingOrderId === order.id ? "Saving…" : "Save"}
                             </button>
+                            {!order.awbCode && order.status !== "Cancelled" && order.status !== "Refunded" ? (
+                              <button
+                                type="button"
+                                onClick={() => void handleShipOrder(order)}
+                                disabled={shippingOrderId === order.id}
+                                className="rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                {shippingOrderId === order.id ? "Booking…" : "Ship via Shiprocket"}
+                              </button>
+                            ) : null}
                           </div>
                           {reasonRequired && !reasonValue.trim() ? (
                             <p className="mt-2 text-xs text-rose-600">Reason required for {update.status.toLowerCase()}.</p>
@@ -457,9 +502,58 @@ export default function OrdersPage() {
                                     </div>
                                     <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
                                       <p className="font-medium text-slate-900">Payment</p>
-                                      <p className="mt-1">{order.paymentMethod || "Card"}</p>
+                                      <p className="mt-1 flex items-center gap-2">
+                                        {order.paymentMethod || "Card"}
+                                        {order.paymentStatus && (
+                                          <span
+                                            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                                              order.paymentStatus === "paid"
+                                                ? "bg-emerald-100 text-emerald-700"
+                                                : order.paymentStatus === "refunded"
+                                                  ? "bg-slate-200 text-slate-600"
+                                                  : order.paymentStatus === "failed"
+                                                    ? "bg-red-100 text-red-700"
+                                                    : "bg-amber-100 text-amber-700"
+                                            }`}
+                                          >
+                                            {order.paymentStatus}
+                                          </span>
+                                        )}
+                                      </p>
                                     </div>
                                   </div>
+                                </div>
+
+                                <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
+                                  <p className="font-medium text-slate-900">Shipping</p>
+                                  {order.awbCode ? (
+                                    <div className="mt-3 space-y-2">
+                                      <div className="flex justify-between text-slate-600">
+                                        <span>Courier</span>
+                                        <span className="text-slate-900">{order.courierName || "—"}</span>
+                                      </div>
+                                      <div className="flex justify-between text-slate-600">
+                                        <span>AWB</span>
+                                        <span className="font-mono text-slate-900">{order.awbCode}</span>
+                                      </div>
+                                      {order.trackingStatus ? (
+                                        <div className="flex justify-between text-slate-600">
+                                          <span>Tracking status</span>
+                                          <span className="text-slate-900">{order.trackingStatus}</span>
+                                        </div>
+                                      ) : null}
+                                      <button
+                                        type="button"
+                                        onClick={() => void handleGetLabel(order)}
+                                        disabled={labelOrderId === order.id}
+                                        className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                      >
+                                        {labelOrderId === order.id ? "Generating…" : "Download shipping label"}
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <p className="mt-2 text-slate-500">Not yet booked with Shiprocket.</p>
+                                  )}
                                 </div>
 
                                 <div>

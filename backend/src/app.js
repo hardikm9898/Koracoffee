@@ -30,6 +30,7 @@ const adminPurchaseRoutes = require("./routes/adminPurchaseRoutes");
 const adminRecipeRoutes = require("./routes/adminRecipeRoutes");
 const adminExpenseRoutes = require("./routes/adminExpenseRoutes");
 const adminReportRoutes = require("./routes/adminReportRoutes");
+const webhookRoutes = require("./routes/webhookRoutes");
 const auditLog = require("./middlewares/auditLog");
 const notFound = require("./middlewares/notFound");
 const errorHandler = require("./middlewares/errorHandler");
@@ -121,6 +122,7 @@ app.use("/api/admin/purchases", adminPurchaseRoutes);
 app.use("/api/admin/recipes", adminRecipeRoutes);
 app.use("/api/admin/expenses", adminExpenseRoutes);
 app.use("/api/admin/reports", adminReportRoutes);
+app.use("/api/webhooks", webhookRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

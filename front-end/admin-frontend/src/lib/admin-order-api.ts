@@ -45,6 +45,13 @@ export type AdminOrderRecord = {
   eta: string;
   notes?: string;
   paymentMethod?: string;
+  paymentGateway?: string;
+  paymentStatus?: string;
+  shiprocketShipmentId?: number | null;
+  awbCode?: string | null;
+  courierName?: string | null;
+  trackingStatus?: string;
+  labelUrl?: string | null;
   cancelReason?: string;
   refundReason?: string;
   createdAt: string;
@@ -118,6 +125,24 @@ export async function advanceOrderStatus(
     method: "POST",
   });
   return parseAdminResponse<AdminOrderRecord>(response);
+}
+
+// Books the order with Shiprocket (create order, assign AWB, request
+// pickup) and moves it to "Shipped" — see backend/src/controllers/shippingController.js.
+export async function shipOrder(
+  orderId: number,
+): Promise<AdminOrderRecord & { pickupScheduled: boolean }> {
+  const response = await adminFetch(`/admin/orders/${orderId}/ship`, {
+    method: "POST",
+  });
+  return parseAdminResponse<AdminOrderRecord & { pickupScheduled: boolean }>(response);
+}
+
+export async function getShippingLabel(orderId: number): Promise<{ labelUrl: string }> {
+  const response = await adminFetch(`/admin/orders/${orderId}/label`, {
+    method: "POST",
+  });
+  return parseAdminResponse<{ labelUrl: string }>(response);
 }
 
 export type PackingSlipItem = {

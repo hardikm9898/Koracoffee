@@ -60,7 +60,36 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ or
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
                   <p className="font-medium text-slate-900">Payment method</p>
-                  <p className="mt-1">{order.paymentMethod || "Card"}</p>
+                  <p className="mt-1 flex items-center gap-2">
+                    {order.paymentMethod || "Card"}
+                    {order.paymentStatus && (
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                          order.paymentStatus === "paid"
+                            ? "bg-emerald-100 text-emerald-700"
+                            : order.paymentStatus === "refunded"
+                              ? "bg-slate-200 text-slate-600"
+                              : order.paymentStatus === "failed"
+                                ? "bg-red-100 text-red-700"
+                                : "bg-amber-100 text-amber-700"
+                        }`}
+                      >
+                        {order.paymentStatus}
+                      </span>
+                    )}
+                  </p>
+                </div>
+                <div className="sm:col-span-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                  <p className="font-medium text-slate-900">Shipping (Shiprocket)</p>
+                  {order.awbCode ? (
+                    <div className="mt-2 grid gap-1 sm:grid-cols-3">
+                      <p>Courier: <span className="text-slate-900">{order.courierName || "—"}</span></p>
+                      <p>AWB: <span className="font-mono text-slate-900">{order.awbCode}</span></p>
+                      <p>Status: <span className="text-slate-900">{order.trackingStatus || "—"}</span></p>
+                    </div>
+                  ) : (
+                    <p className="mt-1 text-slate-500">Not yet booked — use the Orders list to ship this order.</p>
+                  )}
                 </div>
               </div>
             </div>
