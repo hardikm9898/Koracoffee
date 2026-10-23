@@ -1,6 +1,92 @@
 {
-  "app": {},
-  "appUsingSizeAdjust": false,
+  "app": {
+    "[project]/src/app/_not-found/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/3c7c6164b2587822-s.p.7f689f7d.woff2",
+      "static/media/03bda585a99c6450-s.p.ad37b9d9.woff2"
+    ],
+    "[project]/src/app/about/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/3c7c6164b2587822-s.p.7f689f7d.woff2",
+      "static/media/03bda585a99c6450-s.p.ad37b9d9.woff2"
+    ],
+    "[project]/src/app/cart/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/3c7c6164b2587822-s.p.7f689f7d.woff2",
+      "static/media/03bda585a99c6450-s.p.ad37b9d9.woff2"
+    ],
+    "[project]/src/app/checkout/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/3c7c6164b2587822-s.p.7f689f7d.woff2",
+      "static/media/03bda585a99c6450-s.p.ad37b9d9.woff2"
+    ],
+    "[project]/src/app/contact/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/3c7c6164b2587822-s.p.7f689f7d.woff2",
+      "static/media/03bda585a99c6450-s.p.ad37b9d9.woff2"
+    ],
+    "[project]/src/app/faq/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/3c7c6164b2587822-s.p.7f689f7d.woff2",
+      "static/media/03bda585a99c6450-s.p.ad37b9d9.woff2"
+    ],
+    "[project]/src/app/favorites/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/3c7c6164b2587822-s.p.7f689f7d.woff2",
+      "static/media/03bda585a99c6450-s.p.ad37b9d9.woff2"
+    ],
+    "[project]/src/app/login/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/3c7c6164b2587822-s.p.7f689f7d.woff2",
+      "static/media/03bda585a99c6450-s.p.ad37b9d9.woff2"
+    ],
+    "[project]/src/app/offers/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/3c7c6164b2587822-s.p.7f689f7d.woff2",
+      "static/media/03bda585a99c6450-s.p.ad37b9d9.woff2"
+    ],
+    "[project]/src/app/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/3c7c6164b2587822-s.p.7f689f7d.woff2",
+      "static/media/03bda585a99c6450-s.p.ad37b9d9.woff2"
+    ],
+    "[project]/src/app/privacy/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/3c7c6164b2587822-s.p.7f689f7d.woff2",
+      "static/media/03bda585a99c6450-s.p.ad37b9d9.woff2"
+    ],
+    "[project]/src/app/profile/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/3c7c6164b2587822-s.p.7f689f7d.woff2",
+      "static/media/03bda585a99c6450-s.p.ad37b9d9.woff2"
+    ],
+    "[project]/src/app/shipping/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/3c7c6164b2587822-s.p.7f689f7d.woff2",
+      "static/media/03bda585a99c6450-s.p.ad37b9d9.woff2"
+    ],
+    "[project]/src/app/shop/[id]/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/3c7c6164b2587822-s.p.7f689f7d.woff2",
+      "static/media/03bda585a99c6450-s.p.ad37b9d9.woff2"
+    ],
+    "[project]/src/app/shop/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/3c7c6164b2587822-s.p.7f689f7d.woff2",
+      "static/media/03bda585a99c6450-s.p.ad37b9d9.woff2"
+    ],
+    "[project]/src/app/subscribe/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/3c7c6164b2587822-s.p.7f689f7d.woff2",
+      "static/media/03bda585a99c6450-s.p.ad37b9d9.woff2"
+    ],
+    "[project]/src/app/terms/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2",
+      "static/media/3c7c6164b2587822-s.p.7f689f7d.woff2",
+      "static/media/03bda585a99c6450-s.p.ad37b9d9.woff2"
+    ]
+  },
+  "appUsingSizeAdjust": true,
   "pages": {},
   "pagesUsingSizeAdjust": false
 }
