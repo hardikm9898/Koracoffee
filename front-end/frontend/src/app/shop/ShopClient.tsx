@@ -20,6 +20,7 @@ import { useAppContext } from "@/context/CartContext";
 import { VARIANTS } from "@/lib/data";
 import { getProducts, type ProductRecord } from "@/lib/product-api";
 import { cn } from "@/lib/utils";
+import Reveal from "@/components/motion/Reveal";
 
 type SortOption =
   | "featured"
@@ -55,7 +56,7 @@ export default function ShopClient() {
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortOption>("featured");
   const [minPrice, setMinPrice] = useState("0");
-  const [maxPrice, setMaxPrice] = useState("100");
+  const [maxPrice, setMaxPrice] = useState("");
   const [inStockOnly, setInStockOnly] = useState(false);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -260,7 +261,7 @@ export default function ShopClient() {
             </div>
           </div>
 
-          <div>
+          {/* <div>
             <label className="flex items-center gap-3 text-sm font-medium text-foreground">
               <input
                 type="checkbox"
@@ -270,7 +271,7 @@ export default function ShopClient() {
               />
               Show only in-stock products
             </label>
-          </div>
+          </div> */}
 
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted">Price range</p>
@@ -380,7 +381,7 @@ export default function ShopClient() {
                     : "grid-cols-1",
                 )}
               >
-                {products.map((product) => {
+                {products.map((product, index) => {
                   const productVariants =
                     (product.variants && product.variants.length > 0
                       ? product.variants
@@ -404,10 +405,18 @@ export default function ShopClient() {
                     : selectedVariant.stock > 0;
 
                   return (
-                    <article
+                    // Scroll reveal, staggered across each row of three.
+                    <Reveal
                       key={product.id}
+                      className="h-full"
+                      blur={false}
+                      distance={40}
+                      amount={0.15}
+                      delay={(index % 3) * 0.08}
+                    >
+                    <article
                       className={cn(
-                        "overflow-hidden rounded-[2rem] border border-black/6 bg-white shadow-[0_18px_50px_rgba(42,28,22,0.05)] transition-transform hover:-translate-y-1",
+                        "h-full overflow-hidden rounded-[2rem] border border-black/6 bg-white shadow-[0_18px_50px_rgba(42,28,22,0.05)] transition-transform hover:-translate-y-1",
                         view === "list" && "md:grid md:grid-cols-[260px_1fr]",
                       )}
                     >
@@ -541,6 +550,7 @@ export default function ShopClient() {
                         </div>
                       </div>
                     </article>
+                    </Reveal>
                   );
                 })}
               </div>

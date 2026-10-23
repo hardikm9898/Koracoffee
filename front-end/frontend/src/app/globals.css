@@ -11,6 +11,7 @@
   --color-muted: #7A6355;
   --font-sans: var(--font-outfit), var(--font-inter), sans-serif;
   --font-serif: var(--font-outfit), serif;
+  --font-display: var(--font-fraunces), Georgia, serif;
 }
 
 @utility glass {
@@ -152,7 +153,60 @@ h6 {
   will-change: transform, opacity;
 }
 
+/* Film grain for the home story — a tiny noise tile nudged around in steps. */
+.film-grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: grain-shift 0.9s steps(4) infinite;
+}
+
+@keyframes grain-shift {
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(-3%, 2%); }
+  50% { transform: translate(2%, -3%); }
+  75% { transform: translate(-2%, -1%); }
+  100% { transform: translate(0, 0); }
+}
+
+/* Coffee dust drifting through the light beam. */
+@keyframes dust-drift {
+  0% { transform: translate3d(0, 0, 0); opacity: 0; }
+  15% { opacity: var(--dust-opacity, 0.5); }
+  85% { opacity: var(--dust-opacity, 0.5); }
+  100% { transform: translate3d(var(--dust-x, 20px), -140px, 0); opacity: 0; }
+}
+
+.dust-particle {
+  animation: dust-drift var(--dust-duration, 9s) linear infinite;
+  animation-delay: var(--dust-delay, 0s);
+}
+
+/* Home story scroll cue — a short line sliding down a hairline. */
+@keyframes scroll-cue {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(200%); }
+}
+
+.scroll-cue {
+  animation: scroll-cue 1.8s cubic-bezier(0.76, 0, 0.24, 1) infinite;
+}
+
+/* Logo intro: hidden before hydration on repeat visits within the session,
+   and never shown to visitors who prefer reduced motion. */
+html[data-intro-seen] .intro-loader {
+  display: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .intro-loader {
+    display: none;
+  }
+
+  .film-grain,
+  .dust-particle,
+  .scroll-cue {
+    animation: none !important;
+  }
+
   .hero-copy-left,
   .hero-photo-right,
   .hero-bean {

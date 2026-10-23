@@ -2,8 +2,10 @@
 
 import { ShoppingCart, Leaf, Wind } from "lucide-react";
 import Link from "next/link";
-import { useState, useEffect, useCallback, type CSSProperties } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect, useCallback, useRef, type CSSProperties } from "react";
+import { motion, AnimatePresence, useReducedMotion, useScroll, useTransform } from "framer-motion";
+import { useIntro } from "@/components/motion/MotionProvider";
+import { TextReveal } from "@/components/motion/TextReveal";
 
 // ─── Coffee Bean SVG ──────────────────────────────────────────────────────────
 type BeanProps = { className: string; style?: CSSProperties };
@@ -131,23 +133,38 @@ const SLIDE_DURATION = 3000; // 3 seconds per slide
 export default function ImageBannerSlider() {
   const [current, setCurrent] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const { introDone } = useIntro();
+
+  // Parallax: as the hero scrolls away, the copy lags and fades (deepest
+  // layer), the product image drifts a little, and the decorative beans rush
+  // past fastest (foreground) — giving the banner real depth.
+  const sectionRef = useRef<HTMLElement>(null);
+  const reduceMotion = useReducedMotion();
+  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start start", "end start"] });
+  const copyY = useTransform(scrollYProgress, [0, 1], [0, 160]);
+  const copyOpacity = useTransform(scrollYProgress, [0, 0.75], [1, 0]);
+  const imageY = useTransform(scrollYProgress, [0, 1], [0, 70]);
+  const imageScale = useTransform(scrollYProgress, [0, 1], [1, 0.92]);
+  const decorY = useTransform(scrollYProgress, [0, 1], [0, -180]);
+  const parallax = <T,>(value: T) => (reduceMotion ? undefined : value);
 
   const goNext = useCallback(() => {
     setCurrent((c) => (c + 1) % SLIDES.length);
   }, []);
 
-  // Auto-scroll
+  // Auto-scroll (held until the logo intro has lifted)
   useEffect(() => {
-    if (isPaused) return;
+    if (isPaused || !introDone) return;
     const timer = setInterval(goNext, SLIDE_DURATION);
     return () => clearInterval(timer);
-  }, [goNext, isPaused]);
+  }, [goNext, isPaused, introDone]);
 
   const slide = SLIDES[current];
   const BadgeIcon = slide.badge.icon === "wind" ? Wind : Leaf;
 
   return (
     <section
+      ref={sectionRef}
       id="hero"
       className="relative isolate overflow-hidden"
       onMouseEnter={() => setIsPaused(true)}
@@ -164,6 +181,7 @@ export default function ImageBannerSlider() {
         style={{ background: slide.bg }}
       />
 
+      <motion.div className="pointer-events-none absolute inset-0 z-10" style={{ y: parallax(decorY) }}>
       {/* ── Desktop decorative elements | Left ── */}
       <AnimatePresence mode="wait">
         {slide.desktopBeansLeft.map((bean, i) => (
@@ -214,6 +232,8 @@ export default function ImageBannerSlider() {
         ))}
       </AnimatePresence>
 
+      </motion.div>
+
       {/* ── Mobile decorative elements ── */}
       {slide.mobileDecorBeans.map((bean, i) => (
         <slide.DecorEl
@@ -235,11 +255,12 @@ export default function ImageBannerSlider() {
       <div className="relative z-20 container mx-auto grid min-h-[88vh] max-w-7xl items-center gap-4 px-6 py-10 md:min-h-[72vh] md:gap-10 md:px-10 md:py-14 lg:min-h-[560px] xl:min-h-[760px] lg:grid-cols-[0.94fr_1.06fr] lg:px-12">
 
         {/* ── Copy block ── */}
+        <motion.div style={{ y: parallax(copyY), opacity: parallax(copyOpacity) }}>
         <AnimatePresence mode="wait">
           <motion.div
             key={`copy-${slide.id}`}
             initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
+            animate={introDone ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 }}
             exit={{ opacity: 0, y: -24 }}
             transition={{ duration: 0.55, ease: "easeOut" }}
             className="mx-auto w-full max-w-[520px] flex flex-col items-center text-center md:items-start md:text-left lg:ml-16"
@@ -270,15 +291,21 @@ export default function ImageBannerSlider() {
             </p>
 
             {/* Heading */}
-            <h1
-              className="mt-3 text-[2.55rem] font-black font-serif uppercase leading-[0.88] sm:mt-5 sm:text-[4rem] lg:text-[4.5rem] xl:text-[5rem]"
-              style={{ color: slide.textColor }}
-            >
-              {slide.heading[0]}
-              <span className="block mt-2 sm:mt-0" style={{ color: slide.headingColor }}>
-                {slide.heading[1]}
-              </span>
-            </h1>
+            {/* Heading — each line rises from behind a mask */}
+            <div style={{ color: slide.textColor }}>
+              <TextReveal
+                as="h1"
+                play={introDone}
+                delay={0.1}
+                className="mt-3 text-[2.55rem] font-black font-serif uppercase leading-[0.88] sm:mt-5 sm:text-[4rem] lg:text-[4.5rem] xl:text-[5rem]"
+                lines={[
+                  slide.heading[0],
+                  <span key="l2" className="block mt-2 sm:mt-0" style={{ color: slide.headingColor }}>
+                    {slide.heading[1]}
+                  </span>,
+                ]}
+              />
+            </div>
 
             {/* Description */}
             <p
@@ -316,13 +343,15 @@ export default function ImageBannerSlider() {
             </div>
           </motion.div>
         </AnimatePresence>
+        </motion.div>
 
         {/* ── Image block ── */}
+        <motion.div style={{ y: parallax(imageY), scale: parallax(imageScale) }}>
         <AnimatePresence mode="wait">
           <motion.div
             key={`img-${slide.id}`}
             initial={{ opacity: 0, scale: 0.96, x: 30 }}
-            animate={{ opacity: 1, scale: 1, x: 0 }}
+            animate={introDone ? { opacity: 1, scale: 1, x: 0 } : { opacity: 0, scale: 0.96, x: 30 }}
             exit={{ opacity: 0, scale: 0.96, x: -30 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
             className="relative flex min-h-[230px] items-center justify-center sm:min-h-[320px] lg:min-h-[460px] xl:min-h-[560px]"
@@ -351,6 +380,7 @@ export default function ImageBannerSlider() {
             </div>
           </motion.div>
         </AnimatePresence>
+        </motion.div>
       </div>
 
     </section>

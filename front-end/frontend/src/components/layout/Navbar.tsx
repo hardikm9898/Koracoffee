@@ -15,9 +15,9 @@ const NAV_LINKS = [
   { name: "Home", href: "/#hero" },
   { name: "Arrivals", href: "/#arrivals" },
   { name: "Magic", href: "/#categories" },
-  { name: "Press", href: "/#story" },
-  { name: "Craft", href: "/#brew" },
-  { name: "Club", href: "/#club" },
+  // { name: "Press", href: "/#story" },
+  // { name: "Craft", href: "/#brew" },
+  // { name: "Club", href: "/#club" },
   { name: "Shop", href: "/shop" },
 ];
 
@@ -29,6 +29,11 @@ const PROFILE_MENU_ITEMS = [
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
+  // True while the home page's dark scroll story (#hero) is behind the navbar.
+  // null until measured; the home page opens on the story, so it starts dark there.
+  const [overDarkHero, setOverDarkHero] = useState<boolean | null>(null);
+  // True while the story is still pinned on screen (not yet scrolled past).
+  const [storyPlaying, setStoryPlaying] = useState<boolean | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const router = useRouter();
@@ -38,15 +43,34 @@ export default function Navbar() {
   const pathname = usePathname();
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
   const mobileProfileMenuRef = useRef<HTMLDivElement | null>(null);
+  const navRef = useRef<HTMLElement | null>(null);
   const favoritesCount = Array.isArray(favorites) ? favorites.length : 0;
 
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
+      const hero = pathname === "/" ? document.getElementById("hero") : null;
+      const heroBottom = hero ? hero.getBoundingClientRect().bottom : 0;
+      setOverDarkHero(Boolean(hero && heroBottom > (navRef.current?.offsetHeight ?? 90)));
+      // The pinned story releases when the hero's bottom reaches the bottom of
+      // the viewport — that's when the full header and offers arrive.
+      const playing = Boolean(hero && heroBottom > window.innerHeight + 4);
+      setStoryPlaying(playing);
+      // Don't leave the mobile menu open behind a logo-only header.
+      if (playing) setIsMobileMenuOpen(false);
     };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
+    };
+  }, [pathname]);
+  const dark = overDarkHero ?? pathname === "/";
+  // While the home story plays, the header is just the logo; the links,
+  // icons and the offer banner arrive once the story has been scrolled past.
+  const storyMode = storyPlaying ?? pathname === "/";
 
   useEffect(() => {
     const syncAuthState = async () => {
@@ -128,7 +152,8 @@ export default function Navbar() {
 
       if (element) {
         e.preventDefault();
-        const offset = 80;
+        // Navbar height, plus the offer strip that hangs under it on the home page.
+        const offset = pathname === "/" ? 130 : 80;
         const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
         const offsetPosition = elementPosition - offset;
 
@@ -142,15 +167,38 @@ export default function Navbar() {
 
   return (
     <>
-      {pathname === "/" && <AnnouncementBar />}
-
       {/* ── Navbar ── */}
       <nav
+        ref={navRef}
         className={cn(
-          "sticky top-0 z-50 w-full border-b border-black/5 bg-background/95 px-4 backdrop-blur-md transition-all duration-300 sm:px-6 md:px-12",
-          isScrolled ? "shadow-sm" : "shadow-none"
+          // Home: fixed, so the offer banner opening above the nav row never
+          // shifts the page (and the story runs full-bleed behind it).
+          pathname === "/" ? "fixed inset-x-0 top-0" : "sticky top-0",
+          "z-50 w-full border-b px-4 backdrop-blur-md transition-colors duration-500 sm:px-6 md:px-12",
+          storyMode
+            ? "border-transparent bg-transparent backdrop-blur-none"
+            : dark
+              ? "border-white/10 bg-[#140D09]/55"
+              : "border-black/5 bg-background/95",
+          isScrolled && !dark ? "shadow-sm" : "shadow-none"
         )}
       >
+        {/* Running offers, above the nav row. On the home page it stays closed
+            while the story plays and slides open once it's been scrolled past. */}
+        {pathname === "/" ? (
+          <div
+            inert={storyMode}
+            aria-hidden={storyMode}
+            className={cn(
+              "-mx-4 grid transition-[grid-template-rows,opacity] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] sm:-mx-6 md:-mx-12",
+              storyMode ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100"
+            )}
+          >
+            <div className="overflow-hidden">
+              <AnnouncementBar />
+            </div>
+          </div>
+        ) : null}
         <div
           className={cn(
             "mx-auto flex w-full max-w-7xl items-center justify-between gap-3 py-3 sm:py-4",
@@ -166,23 +214,32 @@ export default function Navbar() {
                 width={116}
                 height={110}
                 priority
-                className="h-10 w-auto object-contain sm:h-11"
+                className={cn("h-10 w-auto object-contain transition-[filter] duration-500 sm:h-11", dark && "invert")}
               />
               <span className="flex flex-col leading-none">
-                <span className="text-lg font-black tracking-[0.06em] text-foreground sm:text-xl">KOURA</span>
+                <span className={cn("text-lg font-black tracking-[0.06em] transition-colors duration-500 sm:text-xl", dark ? "text-white" : "text-foreground")}>KOURA</span>
                 <span className="text-[10px] font-bold uppercase tracking-[0.35em] text-primary sm:text-[11px]">Coffee</span>
               </span>
             </Link>
           </div>
 
           {/* Desktop Nav Links */}
-          <div className="hidden lg:flex items-center gap-2">
+          <div
+            inert={storyMode}
+            className={cn(
+              "hidden lg:flex items-center gap-2 transition-all duration-500",
+              storyMode ? "pointer-events-none -translate-y-2 opacity-0" : "translate-y-0 opacity-100"
+            )}
+          >
             {NAV_LINKS.map((link) => (
               <Link
                 key={link.name}
                 href={link.href}
                 onClick={(e) => scrollToSection(e, link.href)}
-                className="px-5 py-2 text-[13px] font-bold uppercase tracking-[0.2em] text-foreground/80 hover:text-primary transition-all duration-300 relative group"
+                className={cn(
+                  "px-5 py-2 text-[13px] font-bold uppercase tracking-[0.2em] hover:text-primary transition-all duration-300 relative group",
+                  dark ? "text-white/80" : "text-foreground/80"
+                )}
               >
                 {link.name}
                 <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-1/4 opacity-0 group-hover:opacity-100" />
@@ -191,10 +248,19 @@ export default function Navbar() {
           </div>
 
           {/* Desktop Icons */}
-          <div className="hidden items-center gap-2 lg:flex md:gap-3">
+          <div
+            inert={storyMode}
+            className={cn(
+              "hidden items-center gap-2 lg:flex md:gap-3 transition-all duration-500",
+              storyMode ? "pointer-events-none -translate-y-2 opacity-0" : "translate-y-0 opacity-100"
+            )}
+          >
             <Link
               href="/favorites"
-              className="relative rounded-2xl p-2.5 text-foreground/70 transition-all duration-300 hover:bg-black/5 hover:text-primary group"
+              className={cn(
+                "relative rounded-2xl p-2.5 transition-all duration-300 hover:text-primary group",
+                dark ? "text-white/75 hover:bg-white/10" : "text-foreground/70 hover:bg-black/5"
+              )}
             >
               <Heart className="w-5 h-5 group-hover:scale-110 transition-transform" />
               {favoritesCount > 0 ? (
@@ -203,7 +269,10 @@ export default function Navbar() {
             </Link>
             <Link
               href="/cart"
-              className="relative rounded-2xl p-2.5 text-foreground/70 transition-all duration-300 hover:bg-black/5 hover:text-primary group"
+              className={cn(
+                "relative rounded-2xl p-2.5 transition-all duration-300 hover:text-primary group",
+                dark ? "text-white/75 hover:bg-white/10" : "text-foreground/70 hover:bg-black/5"
+              )}
             >
               <ShoppingCart className="w-5 h-5 group-hover:scale-110 transition-transform" />
               {cartCount > 0 && (
@@ -219,8 +288,9 @@ export default function Navbar() {
                 aria-haspopup="menu"
                 aria-expanded={isProfileMenuOpen}
                 className={cn(
-                  "inline-flex items-center gap-2 rounded-2xl border bg-white/70 px-3 py-2 text-left text-foreground/80 transition-all duration-300 hover:border-primary/20 hover:text-primary",
-                  isAuthenticated ? "border-black/8" : "border-transparent"
+                  "inline-flex items-center gap-2 rounded-2xl border px-3 py-2 text-left transition-all duration-300 hover:border-primary/20 hover:text-primary",
+                  dark ? "bg-white/10 text-white/85" : "bg-white/70 text-foreground/80",
+                  isAuthenticated ? (dark ? "border-white/10" : "border-black/8") : "border-transparent"
                 )}
               >
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/12 text-xs font-black text-primary">
@@ -297,7 +367,13 @@ export default function Navbar() {
           </div>
 
           {/* Mobile: Icons + Hamburger */}
-          <div className="flex items-center gap-2 lg:hidden">
+          <div
+            inert={storyMode}
+            className={cn(
+              "flex items-center gap-2 lg:hidden transition-all duration-500",
+              storyMode ? "pointer-events-none -translate-y-2 opacity-0" : "translate-y-0 opacity-100"
+            )}
+          >
             <div ref={mobileProfileMenuRef} className="relative">
               <button
                 type="button"
@@ -305,8 +381,9 @@ export default function Navbar() {
                 aria-haspopup="menu"
                 aria-expanded={isProfileMenuOpen}
                 className={cn(
-                  "rounded-2xl p-2.5 text-foreground/75 transition-colors hover:bg-black/5 hover:text-primary",
-                  isAuthenticated && "border border-black/8 bg-white/70"
+                  "rounded-2xl p-2.5 transition-colors hover:text-primary",
+                  dark ? "text-white/80 hover:bg-white/10" : "text-foreground/75 hover:bg-black/5",
+                  isAuthenticated && (dark ? "border border-white/10 bg-white/10" : "border border-black/8 bg-white/70")
                 )}
               >
                 {isAuthenticated ? (
@@ -378,7 +455,10 @@ export default function Navbar() {
             </div>
             <Link
               href="/favorites"
-              className="relative rounded-2xl p-2.5 text-foreground/75 transition-colors hover:bg-black/5 hover:text-primary"
+              className={cn(
+                "relative rounded-2xl p-2.5 transition-colors hover:text-primary",
+                dark ? "text-white/80 hover:bg-white/10" : "text-foreground/75 hover:bg-black/5"
+              )}
             >
               <Heart className="h-5 w-5" />
               {favoritesCount > 0 ? (
@@ -387,7 +467,10 @@ export default function Navbar() {
             </Link>
             <Link
               href="/cart"
-              className="relative rounded-2xl p-2.5 text-foreground/75 transition-colors hover:bg-black/5 hover:text-primary"
+              className={cn(
+                "relative rounded-2xl p-2.5 transition-colors hover:text-primary",
+                dark ? "text-white/80 hover:bg-white/10" : "text-foreground/75 hover:bg-black/5"
+              )}
             >
               <ShoppingCart className="h-5 w-5" />
               {cartCount > 0 && (
@@ -402,12 +485,16 @@ export default function Navbar() {
               aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
               aria-expanded={isMobileMenuOpen}
               onClick={() => setIsMobileMenuOpen((prev) => !prev)}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-black/8 bg-white/80 text-foreground transition-all hover:bg-black/5"
+              className={cn(
+                "inline-flex h-11 w-11 items-center justify-center rounded-2xl border transition-all",
+                dark ? "border-white/15 bg-white/10 text-white hover:bg-white/20" : "border-black/8 bg-white/80 text-foreground hover:bg-black/5"
+              )}
             >
               {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
           </div>
         </div>
+
       </nav>
 
       {/* ── Mobile Menu — OUTSIDE <nav> to avoid sticky stacking-context breaking fixed positioning ── */}

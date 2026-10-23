@@ -1,0 +1,30 @@
+{
+  "version": 1792751492108,
+  "ext": "webp",
+  "desktop": {
+    "path": "/sequence/desktop/",
+    "width": 1600,
+    "height": 900,
+    "frameCount": 239,
+    "sceneStarts": [
+      0,
+      0.2062,
+      0.4124,
+      0.6186,
+      0.8247
+    ]
+  },
+  "mobile": {
+    "path": "/sequence/mobile/",
+    "width": 720,
+    "height": 960,
+    "frameCount": 239,
+    "sceneStarts": [
+      0,
+      0.2062,
+      0.4124,
+      0.6186,
+      0.8247
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "$comment": "Read by scripts/build-sequence.mjs. Scenes play in this order. start/end (seconds) trim a clip. watermark: the AI tool's sparkle mark (bottom-right, in 1920x1080 source pixels) is covered with a feathered patch of the stone texture copied from just beside it (patchFrom).",
+  "scenes": [
+    { "file": "scene-1.mp4", "label": "Origin — green beans fall into a pile" },
+    { "file": "scene-2.mp4", "label": "Roast — beans turn from green to dark brown" },
+    { "file": "scene-3.mp4", "label": "Grind — beans burst into ground coffee" },
+    { "file": "scene-4.mp4", "label": "Brew — grounds swirl into espresso pouring into the cup" },
+    { "file": "scene-5.mp4", "label": "Your cup — steam rises", "end": 8.5, "note": "Clip jumps back to a wider shot at 8.54s, so it is trimmed before that." }
+  ],
+  "watermark": { "x": 1676, "y": 842, "w": 176, "h": 156, "patchFromX": 1494, "patchFromY": 842, "feather": 26 }
+}
